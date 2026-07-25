@@ -1,0 +1,207 @@
+<mxfile host="app.diagrams.net" agent="agent-lineage" version="24.0.0">
+  <diagram id="agent-lineage-ingestion" name="Agent Lineage - Data Ingestion Flow">
+    <mxGraphModel dx="1400" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Agent Lineage — Data Ingestion Flow" style="text;html=1;fontSize=18;fontStyle=1;fontColor=#232F3E;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="600" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ============ Lane headers ============ -->
+        <mxCell id="lane1" value="1 · TRIGGER" style="text;html=1;fontSize=12;fontStyle=1;fontColor=#5A30B5;align=center;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lane2" value="2 · AWS SOURCES" style="text;html=1;fontSize=12;fontStyle=1;fontColor=#116D5B;align=center;" vertex="1" parent="1">
+          <mxGeometry x="300" y="70" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lane3" value="3 · SYNC CONNECTORS (sequential, isolated failures)" style="text;html=1;fontSize=12;fontStyle=1;fontColor=#D05C17;align=center;" vertex="1" parent="1">
+          <mxGeometry x="580" y="70" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lane4" value="4 · INGESTION CORE (ingest.py)" style="text;html=1;fontSize=12;fontStyle=1;fontColor=#B0084D;align=center;" vertex="1" parent="1">
+          <mxGeometry x="940" y="70" width="260" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lane5" value="5 · STORE &amp; SERVE" style="text;html=1;fontSize=12;fontStyle=1;fontColor=#277116;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="70" width="280" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ============ Lane 1: Triggers ============ -->
+        <mxCell id="btn" value="&quot;Connect AWS&quot; button&#10;(UI, Cognito JWT)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE7F6;strokeColor=#5A30B5;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="110" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="curl" value="POST /api/v1/aws/sync&#10;(curl / automation)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE7F6;strokeColor=#5A30B5;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="190" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="seedbox" value="Demo seed&#10;python -m app.seed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE7F6;strokeColor=#5A30B5;fontSize=12;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="640" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="streambox" value="[future] Streaming:&#10;CloudWatch Logs subscription&#10;→ OTel translator Lambda" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE7F6;strokeColor=#5A30B5;fontSize=12;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="720" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="session" value="STS: discover account&#10;namespace = account/region&#10;(task-role credentials)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDEBEC;strokeColor=#C7131F;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="330" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ============ Lane 2: Sources ============ -->
+        <mxCell id="srcControl" value="AgentCore control plane&#10;list/get: agent runtimes, gateways&#10;+ targets, identities, credential&#10;providers, registries + records,&#10;evaluators, online eval configs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E5F3EF;strokeColor=#116D5B;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="300" y="110" width="220" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="srcBedrock" value="Amazon Bedrock&#10;list/get guardrails" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E5F3EF;strokeColor=#116D5B;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="300" y="240" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="srcSpans" value="CloudWatch Logs: aws/spans&#10;OTel GenAI spans, filter &quot;gen_ai&quot;&#10;30-day window, 5000-event cap" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E5F3EF;strokeColor=#116D5B;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="300" y="310" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="srcEvalLogs" value="CloudWatch Logs:&#10;online-eval results log groups&#10;(per-invocation scores)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E5F3EF;strokeColor=#116D5B;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="300" y="400" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ============ Lane 3: Connectors ============ -->
+        <mxCell id="c1" value="① runtime_agents → agents, user groups (JWT authorizer), workload-identity ARNs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDF1E7;strokeColor=#D05C17;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="580" y="110" width="300" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c2" value="② gateways → gateway + tool nodes, ROUTES_TO edges" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDF1E7;strokeColor=#D05C17;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="580" y="170" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" value="③ identity → identities, credentials, AUTHENTICATES_AS (ARN match + name-prefix fallback)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDF1E7;strokeColor=#D05C17;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="580" y="220" width="300" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c4" value="④ guardrails → guardrail nodes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDF1E7;strokeColor=#D05C17;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="580" y="280" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c5" value="⑤ registry → registry facets (A2A / MCP / skills), HAS_SKILL edges" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDF1E7;strokeColor=#D05C17;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="580" y="330" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c6" value="⑥ evaluations → batch evals + online configs, result scores tailed from CloudWatch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDF1E7;strokeColor=#D05C17;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="580" y="380" width="300" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c7" value="⑦ observability_runs → span-to-event translation (invoke_agent → START/COMPLETE, chat → LLM usage, tool spans, guardrail attrs)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDF1E7;strokeColor=#D05C17;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="580" y="440" width="300" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ============ Lane 4: Ingestion core ============ -->
+        <mxCell id="ingest" value="ingest_event(AgentRunEvent)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE7F0;strokeColor=#B0084D;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="940" y="110" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="i1" value="Store raw event (audit / replay)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE7F0;strokeColor=#B0084D;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="940" y="160" width="260" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="i2" value="Upsert nodes (keyed type:namespace/name, facet merge)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE7F0;strokeColor=#B0084D;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="940" y="204" width="260" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="i3" value="Upsert edges — origin: declared / observed / both, call counts, last_observed_at" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE7F0;strokeColor=#B0084D;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="940" y="256" width="260" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="i4" value="Run lifecycle (START → COMPLETE/FAIL) + version facets" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE7F0;strokeColor=#B0084D;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="940" y="308" width="260" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="i5" value="Cedar decision log (ALLOW/DENY per gateway call)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE7F0;strokeColor=#B0084D;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="940" y="360" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="i6" value="Guardrail intervention log (BLOCKED / MASKED / PASSED)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE7F0;strokeColor=#B0084D;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="940" y="408" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="i7" value="LLM usage → cost derivation (node pricing facet, else built-in pricing catalog)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE7F0;strokeColor=#B0084D;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="940" y="456" width="260" height="44" as="geometry" />
+        </mxCell>
+
+        <!-- ============ Lane 5: Store & serve ============ -->
+        <mxCell id="db" value="SQLite on EFS&#10;nodes · edges · runs · lineage_events&#10;llm_usage · cedar_decisions&#10;guardrail_interventions · evaluations" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#EAF3DC;strokeColor=#277116;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="160" width="240" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="apis" value="Query APIs&#10;lineage graph (directional BFS) · catalog search&#10;costs &amp; LLM stats (time-windowed) · run timelines&#10;decision / intervention logs · evaluations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF3DC;strokeColor=#277116;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="340" width="240" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="ui" value="React UI&#10;lineage graph · detail tabs ·&#10;runs &amp; evaluations explorers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF3DC;strokeColor=#277116;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="470" width="240" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ============ Direct ingestion path note ============ -->
+        <mxCell id="directapi" value="POST /api/v1/lineage/events&#10;(same ingestion path — any emitter can stream events directly)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#B8860B;fontSize=11;align=left;spacingLeft=8;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="720" width="300" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ============ Edges ============ -->
+        <mxCell id="f1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#5A30B5;fontSize=11;" edge="1" parent="1" source="btn" target="session">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#5A30B5;fontSize=11;" edge="1" parent="1" source="curl" target="session">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f3" value="runs connectors ①–⑦" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#232F3E;fontSize=11;fontColor=#232F3E;" edge="1" parent="1" source="session" target="c1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="550" y="365" />
+              <mxPoint x="550" y="135" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f4" value="List*/Get*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#116D5B;dashed=1;fontSize=10;fontColor=#116D5B;" edge="1" parent="1" source="srcControl" target="c1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#116D5B;dashed=1;fontSize=10;" edge="1" parent="1" source="srcBedrock" target="c4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#116D5B;dashed=1;fontSize=10;" edge="1" parent="1" source="srcSpans" target="c7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#116D5B;dashed=1;fontSize=10;" edge="1" parent="1" source="srcEvalLogs" target="c6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f8" value="upserts (①–⑥)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#D05C17;fontSize=11;fontColor=#D05C17;" edge="1" parent="1" source="c3" target="i2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="910" y="245" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f9" value="AgentRunEvents (⑦)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#D05C17;fontSize=11;fontColor=#D05C17;" edge="1" parent="1" source="c7" target="ingest">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="910" y="475" />
+              <mxPoint x="910" y="130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#B0084D;fontSize=10;" edge="1" parent="1" source="ingest" target="i1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f11" value="writes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#277116;fontSize=11;fontColor=#277116;" edge="1" parent="1" source="i3" target="db">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1240" y="278" />
+              <mxPoint x="1240" y="225" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f12" value="reads" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#277116;fontSize=11;fontColor=#277116;" edge="1" parent="1" source="db" target="apis">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f13" value="JSON (Cognito JWT)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#277116;fontSize=11;fontColor=#277116;" edge="1" parent="1" source="apis" target="ui">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f14" value="synthetic events" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#B8860B;dashed=1;fontSize=10;fontColor=#B8860B;" edge="1" parent="1" source="seedbox" target="directapi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#B8860B;dashed=1;fontSize=10;" edge="1" parent="1" source="streambox" target="directapi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#B8860B;dashed=1;fontSize=10;" edge="1" parent="1" source="directapi" target="ingest">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="920" y="750" />
+              <mxPoint x="920" y="130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ============ Legend ============ -->
+        <mxCell id="legend" value="Solid = sync pipeline (on demand) · Dashed green = AWS API reads · Dashed gold = event-push path (seed today, streaming later).&#10;Everything is idempotent: nodes merge facets, edges accumulate counts, re-syncing never duplicates. Failures are per-connector and reported in the sync result." style="text;html=1;fontSize=11;fontColor=#5A6C86;align=left;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="300" y="850" width="900" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
