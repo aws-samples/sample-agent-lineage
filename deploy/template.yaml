@@ -30,6 +30,15 @@ Parameters:
     Description: >-
       Optional: SES-verified sender address for access-request notification
       emails to admins. Leave empty to disable email notifications.
+  CloudFrontPrefixListId:
+    Type: String
+    AllowedPattern: "^pl-[0-9a-f]+$"
+    Description: >-
+      ID of the AWS-managed prefix list "com.amazonaws.global.cloudfront.origin-facing"
+      in this region (deploy.sh resolves it automatically). Locks the ALB so only
+      CloudFront edge nodes can reach it. Find it manually with:
+      aws ec2 describe-managed-prefix-lists --filters
+      Name=prefix-list-name,Values=com.amazonaws.global.cloudfront.origin-facing
 
 Conditions:
   CreateNetwork: !Equals [!Ref ExistingVpcId, ""]
@@ -107,13 +116,15 @@ Resources:
   AlbSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: ALB - HTTP from CloudFront (verified via origin header)
+      GroupDescription: >-
+        ALB - HTTP from CloudFront edge nodes only (managed prefix list),
+        plus origin-header verification at the listener.
       VpcId: !If [CreateNetwork, !Ref Vpc, !Ref ExistingVpcId]
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          CidrIp: 0.0.0.0/0
+          SourcePrefixListId: !Ref CloudFrontPrefixListId
 
   TaskSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -351,6 +362,10 @@ Resources:
   FrontendBucket:
     Type: AWS::S3::Bucket
     Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true

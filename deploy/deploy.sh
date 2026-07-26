@@ -40,6 +40,17 @@ if [ -z "$SECRET" ] || [ "$SECRET" = "None" ]; then
   SECRET=$(openssl rand -hex 24)
 fi
 
+# CloudFront origin-facing managed prefix list: locks the ALB security group
+# so only CloudFront edge nodes can reach it (ID differs per region).
+CF_PREFIX_LIST=$(aws ec2 describe-managed-prefix-lists --region "$REGION" \
+  --filters Name=prefix-list-name,Values=com.amazonaws.global.cloudfront.origin-facing \
+  --query "PrefixLists[0].PrefixListId" --output text)
+if [ -z "$CF_PREFIX_LIST" ] || [ "$CF_PREFIX_LIST" = "None" ]; then
+  echo "ERROR: could not resolve the CloudFront origin-facing prefix list in ${REGION}" >&2
+  exit 1
+fi
+echo "==> CloudFront origin-facing prefix list: ${CF_PREFIX_LIST}"
+
 # Network mode: reuse an existing VPC (avoids the per-region VPC quota) or create one.
 EXTRA_PARAMS=()
 if [ -n "$EXISTING_VPC_ID" ]; then
@@ -69,7 +80,8 @@ aws cloudformation deploy \
   --region "$REGION" \
   --template-file "$ROOT/deploy/template.yaml" \
   --capabilities CAPABILITY_NAMED_IAM \
-  --parameter-overrides "ImageUri=${IMAGE_URI}" "OriginVerifySecret=${SECRET}" ${EXTRA_PARAMS[@]+"${EXTRA_PARAMS[@]}"}
+  --parameter-overrides "ImageUri=${IMAGE_URI}" "OriginVerifySecret=${SECRET}" \
+    "CloudFrontPrefixListId=${CF_PREFIX_LIST}" ${EXTRA_PARAMS[@]+"${EXTRA_PARAMS[@]}"}
 
 outputs() {
   aws cloudformation describe-stacks --stack-name "$STACK" --region "$REGION" \
