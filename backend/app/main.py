@@ -6,19 +6,21 @@ until authn/z is added (see docs/RESEARCH.md roadmap).
 from datetime import datetime
 from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import auth
+from . import auth, rbac
 from . import graph as graph_service
 from . import ingest, models, registry_sync
 from .database import Base, engine, get_db
 from sqlalchemy import func
 
 from .schemas import (
+    AccessRequestIn,
+    AccessRequestOut,
     AgentCatalogEntry,
     AgentCost,
     AgentRunEvent,
@@ -30,6 +32,7 @@ from .schemas import (
     Graph,
     GuardrailInterventionOut,
     LlmCostBreakdown,
+    MeOut,
     NodeIn,
     NodeOut,
     RunOut,
@@ -62,7 +65,8 @@ async def cognito_auth_middleware(request, call_next):
     header = request.headers.get("authorization", "")
     if header.startswith("Bearer "):
         try:
-            auth.verify_token(header[7:])
+            # Stash claims for downstream RBAC checks (role, namespace scope).
+            request.state.claims = auth.verify_token(header[7:])
             return await call_next(request)
         except Exception:
             pass
@@ -74,6 +78,112 @@ async def cognito_auth_middleware(request, call_next):
 @app.get("/api/v1/auth/config")
 def get_auth_config():
     return auth.auth_config()
+
+
+# ---------- Identity & access scope ----------
+
+def _visible_namespaces(db: Session, entries) -> list[str]:
+    rows = db.execute(select(models.Node.namespace).distinct()).scalars().all()
+    return sorted(ns for ns in rows if rbac.ns_allowed(ns, entries))
+
+
+def _check_node_scope(db: Session, nid: str, entries) -> None:
+    """403 when a node-id-addressed resource is outside the caller's scope."""
+    if entries is None:
+        return
+    node = db.get(models.Node, nid)
+    if node is not None:
+        rbac.check_ns(node.namespace, entries)
+
+
+@app.get("/api/v1/me", response_model=MeOut)
+def me(request: Request, db: Session = Depends(get_db)):
+    """Caller's role and account scope; the frontend shapes its UI from this."""
+    claims = getattr(request.state, "claims", None)
+    entries = rbac.allowed_entries(claims)
+    return MeOut(
+        auth_enabled=auth.ENABLED,
+        role="admin" if rbac.is_admin(claims) else "viewer",
+        email=rbac.email_of(claims),
+        allowed_entries=sorted(entries) if entries is not None else [],
+        namespaces=_visible_namespaces(db, entries),
+    )
+
+
+# ---------- Access requests (viewer asks, admin approves in-app) ----------
+
+@app.post("/api/v1/access-requests", response_model=AccessRequestOut)
+def create_access_request(
+    payload: AccessRequestIn, request: Request, db: Session = Depends(get_db)
+):
+    """A viewer requests access to an AWS account. Admins are notified by
+    email (best-effort) and approve or reject in the app."""
+    claims = getattr(request.state, "claims", None)
+    req = models.AccessRequest(
+        requester_sub=rbac.sub_of(claims),
+        requester_username=rbac.username_of(claims),
+        requester_email=rbac.email_of(claims),
+        account_name=payload.account_name,
+        account_id=payload.account_id,
+        reason=payload.reason,
+    )
+    db.add(req)
+    db.commit()
+    db.refresh(req)
+    rbac.notify_admins(
+        subject=f"[Agent Lineage] Access request: {payload.account_name} ({payload.account_id})",
+        body=(
+            f"{req.requester_email or req.requester_username} requested access to "
+            f"AWS account {payload.account_name} ({payload.account_id}).\n\n"
+            f"Reason: {payload.reason}\n\n"
+            f"Review and approve/reject in the Agent Lineage app (Access Requests)."
+        ),
+    )
+    return req
+
+
+@app.get("/api/v1/access-requests", response_model=list[AccessRequestOut])
+def list_access_requests(request: Request, db: Session = Depends(get_db)):
+    """Admins see every request; viewers see only their own history."""
+    claims = getattr(request.state, "claims", None)
+    stmt = select(models.AccessRequest).order_by(models.AccessRequest.created_at.desc())
+    if not rbac.is_admin(claims):
+        stmt = stmt.where(models.AccessRequest.requester_sub == rbac.sub_of(claims))
+    return list(db.scalars(stmt))
+
+
+class AccessDecision(BaseModel):
+    action: str  # approve | reject
+
+
+@app.post(
+    "/api/v1/access-requests/{request_id}/decision",
+    response_model=AccessRequestOut,
+    dependencies=[Depends(rbac.require_admin)],
+)
+def decide_access_request(
+    request_id: int, decision: AccessDecision, request: Request,
+    db: Session = Depends(get_db),
+):
+    if decision.action not in ("approve", "reject"):
+        raise HTTPException(400, "action must be approve or reject")
+    req = db.get(models.AccessRequest, request_id)
+    if req is None:
+        raise HTTPException(404, "access request not found")
+    if req.status != "pending":
+        raise HTTPException(409, f"request already {req.status}; file a new one")
+    if decision.action == "approve":
+        try:
+            # Grant the whole account (all regions): entry is the account id.
+            rbac.grant_account(req.requester_username or req.requester_sub, req.account_id)
+        except Exception as e:
+            raise HTTPException(502, f"Cognito grant failed: {type(e).__name__}: {e}")
+    req.status = "approved" if decision.action == "approve" else "rejected"
+    req.decided_at = models.utcnow()
+    req.decided_by = rbac.email_of(getattr(request.state, "claims", None))
+    db.commit()
+    db.refresh(req)
+    return req
 
 
 # ---------- Registry (declared lineage) ----------
@@ -102,10 +212,11 @@ def list_nodes(node_type: Optional[str] = None, db: Session = Depends(get_db)):
 
 
 @app.get("/api/v1/nodes/{nid:path}", response_model=NodeOut)
-def get_node(nid: str, db: Session = Depends(get_db)):
+def get_node(nid: str, db: Session = Depends(get_db), entries=Depends(rbac.scope)):
     node = db.get(models.Node, nid)
     if node is None:
         raise HTTPException(404, "node not found")
+    rbac.check_ns(node.namespace, entries)
     return node
 
 
@@ -165,16 +276,22 @@ def list_runs(
     limit: int = Query(default=25, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
+    entries=Depends(rbac.scope),
 ):
     """Paginated run history with per-run LLM cost rollups. A run is one
     end-to-end agent invocation (all sub-agent activity under the same runId)."""
     conditions = []
     if agent_id:
+        _check_node_scope(db, agent_id, entries)
         conditions.append(models.Run.agent_id == agent_id)
     if state:
         conditions.append(models.Run.state == state)
     if since:
         conditions.append(models.Run.started_at >= since)
+    if entries is not None:
+        allowed = _visible_namespaces(db, entries)
+        agent_ids = select(models.Node.id).where(models.Node.namespace.in_(allowed))
+        conditions.append(models.Run.agent_id.in_(agent_ids))
     total = db.scalar(
         select(func.count()).select_from(models.Run).where(*conditions)
     ) or 0
@@ -193,10 +310,23 @@ def list_runs(
 def get_lineage_graph(
     node_id: Optional[list[str]] = Query(default=None),
     depth: int = Query(default=5, ge=1, le=10),
+    namespace: Optional[str] = Query(default=None),
     db: Session = Depends(get_db),
+    entries=Depends(rbac.scope),
 ):
-    """Full graph, or the union of BFS neighborhoods around one or more focus nodes."""
-    return graph_service.get_graph(db, node_ids=node_id, depth=depth)
+    """Full graph, or the union of BFS neighborhoods around one or more focus
+    nodes -- always limited to the caller's namespace scope, optionally
+    narrowed further to one selected namespace."""
+    if namespace:
+        rbac.check_ns(namespace, entries)
+
+    def allowed(ns: str) -> bool:
+        if namespace and ns != namespace:
+            return False
+        return rbac.ns_allowed(ns, entries)
+
+    restrict = allowed if (namespace or entries is not None) else None
+    return graph_service.get_graph(db, node_ids=node_id, depth=depth, ns_allowed=restrict)
 
 
 # ---------- Cross-type catalog search ----------
@@ -205,12 +335,20 @@ def get_lineage_graph(
 def search_nodes(
     q: Optional[str] = None,
     node_type: Optional[str] = None,
+    namespace: Optional[str] = None,
     limit: int = Query(default=60, ge=1, le=200),
     db: Session = Depends(get_db),
+    entries=Depends(rbac.scope),
 ):
     """Search the whole catalog: agents, tools, skills, gateways, LLMs, etc.
-    Agent rows include run/eval/cost aggregates."""
+    Agent rows include run/eval/cost aggregates. Scoped to the caller's
+    allowed namespaces, optionally narrowed to one."""
     stmt = select(models.Node)
+    if namespace:
+        rbac.check_ns(namespace, entries)
+        stmt = stmt.where(models.Node.namespace == namespace)
+    elif entries is not None:
+        stmt = stmt.where(models.Node.namespace.in_(_visible_namespaces(db, entries)))
     if q:
         stmt = stmt.where(models.Node.name.ilike(f"%{q}%"))
     if node_type:
@@ -265,8 +403,18 @@ def search_nodes(
 # ---------- Agent catalog (AgentCore registry search) ----------
 
 @app.get("/api/v1/agents/catalog", response_model=list[AgentCatalogEntry])
-def agent_catalog(q: Optional[str] = None, db: Session = Depends(get_db)):
+def agent_catalog(
+    q: Optional[str] = None,
+    namespace: Optional[str] = None,
+    db: Session = Depends(get_db),
+    entries=Depends(rbac.scope),
+):
     stmt = select(models.Node).where(models.Node.node_type == "agent")
+    if namespace:
+        rbac.check_ns(namespace, entries)
+        stmt = stmt.where(models.Node.namespace == namespace)
+    elif entries is not None:
+        stmt = stmt.where(models.Node.namespace.in_(_visible_namespaces(db, entries)))
     if q:
         stmt = stmt.where(models.Node.name.ilike(f"%{q}%"))
     agents = list(db.scalars(stmt))
@@ -312,10 +460,19 @@ def create_evaluation(payload: EvaluationIn, db: Session = Depends(get_db)):
 
 
 @app.get("/api/v1/evaluations", response_model=list[EvaluationOut])
-def list_evaluations(agent_id: Optional[str] = None, db: Session = Depends(get_db)):
+def list_evaluations(
+    agent_id: Optional[str] = None,
+    db: Session = Depends(get_db),
+    entries=Depends(rbac.scope),
+):
     stmt = select(models.Evaluation).order_by(models.Evaluation.executed_at.desc())
     if agent_id:
+        _check_node_scope(db, agent_id, entries)
         stmt = stmt.where(models.Evaluation.agent_id == agent_id)
+    elif entries is not None:
+        allowed = _visible_namespaces(db, entries)
+        agent_ids = select(models.Node.id).where(models.Node.namespace.in_(allowed))
+        stmt = stmt.where(models.Evaluation.agent_id.in_(agent_ids))
     return list(db.scalars(stmt))
 
 
@@ -326,10 +483,12 @@ def llm_stats(
     llm_id: str,
     since: Optional[datetime] = None,
     db: Session = Depends(get_db),
+    entries=Depends(rbac.scope),
 ):
     """Usage rollup for one model: invocations, tokens, cost, per-agent breakdown."""
     if db.get(models.Node, llm_id) is None:
         raise HTTPException(404, "llm not found")
+    _check_node_scope(db, llm_id, entries)
     conditions = [models.LlmUsage.llm_id == llm_id]
     if since:
         conditions.append(models.LlmUsage.recorded_at >= since)
@@ -366,12 +525,17 @@ def llm_stats(
 
 
 @app.get("/api/v1/namespaces")
-def list_namespaces(db: Session = Depends(get_db)):
-    """Distinct namespaces (account/region) present in the graph."""
+def list_namespaces(db: Session = Depends(get_db), entries=Depends(rbac.scope)):
+    """Distinct namespaces (account/region) present in the graph, limited to
+    the caller's access scope."""
     rows = db.execute(
         select(models.Node.namespace, func.count()).group_by(models.Node.namespace)
     ).all()
-    return [{"namespace": ns, "nodes": int(n)} for ns, n in rows]
+    return [
+        {"namespace": ns, "nodes": int(n)}
+        for ns, n in rows
+        if rbac.ns_allowed(ns, entries)
+    ]
 
 
 @app.get("/api/v1/costs/{agent_id:path}", response_model=AgentCost)
@@ -379,9 +543,11 @@ def agent_cost(
     agent_id: str,
     since: Optional[datetime] = None,
     db: Session = Depends(get_db),
+    entries=Depends(rbac.scope),
 ):
     if db.get(models.Node, agent_id) is None:
         raise HTTPException(404, "agent not found")
+    _check_node_scope(db, agent_id, entries)
 
     conditions = [models.LlmUsage.agent_id == agent_id]
     if since:
@@ -430,8 +596,10 @@ def cedar_decisions(
     decision: Optional[str] = Query(default=None, pattern="^(ALLOW|DENY)$"),
     limit: int = Query(default=100, ge=1, le=500),
     db: Session = Depends(get_db),
+    entries=Depends(rbac.scope),
 ):
     """Individual Cedar authorization decisions made by a gateway (audit drill-down)."""
+    _check_node_scope(db, gateway_id, entries)
     stmt = (
         select(models.CedarDecision)
         .where(models.CedarDecision.gateway_id == gateway_id)
@@ -463,7 +631,9 @@ def guardrail_interventions(
     guardrail_id: str,
     limit: int = Query(default=100, ge=1, le=500),
     db: Session = Depends(get_db),
+    entries=Depends(rbac.scope),
 ):
+    _check_node_scope(db, guardrail_id, entries)
     rows = list(db.scalars(
         select(models.GuardrailIntervention)
         .where(models.GuardrailIntervention.guardrail_id == guardrail_id)
@@ -488,8 +658,11 @@ def guardrail_interventions(
 # ---------- Run timeline (audit drill-down) ----------
 
 @app.get("/api/v1/runs/{run_id}/timeline")
-def run_timeline(run_id: str, db: Session = Depends(get_db)):
+def run_timeline(run_id: str, db: Session = Depends(get_db), entries=Depends(rbac.scope)):
     """Step-by-step trajectory of a run, reconstructed from raw lineage events."""
+    run = db.get(models.Run, run_id)
+    if run is not None:
+        _check_node_scope(db, run.agent_id, entries)
     events = list(db.scalars(
         select(models.LineageEvent)
         .where(models.LineageEvent.run_id == run_id)
@@ -570,7 +743,7 @@ def run_timeline(run_id: str, db: Session = Depends(get_db)):
 
 # ---------- Cost recompute ----------
 
-@app.post("/api/v1/costs/recompute")
+@app.post("/api/v1/costs/recompute", dependencies=[Depends(rbac.require_admin)])
 def recompute_costs(db: Session = Depends(get_db)):
     """Re-derive cost for usage rows that landed with $0 (e.g. ingested before
     pricing was known). Node `pricing_per_1k` facets win over the built-in catalog."""
@@ -602,7 +775,10 @@ def recompute_costs(db: Session = Depends(get_db)):
 
 # ---------- Namespace management ----------
 
-@app.delete("/api/v1/namespaces/{namespace:path}")
+@app.delete(
+    "/api/v1/namespaces/{namespace:path}",
+    dependencies=[Depends(rbac.require_admin)],
+)
 def delete_namespace(namespace: str, db: Session = Depends(get_db)):
     """Purge all lineage data for a namespace (e.g. the 'default' demo seed)."""
     from .purge import purge_namespace
@@ -618,7 +794,7 @@ class AwsSyncRequest(BaseModel):
     role_arn: Optional[str] = None
 
 
-@app.post("/api/v1/aws/sync")
+@app.post("/api/v1/aws/sync", dependencies=[Depends(rbac.require_admin)])
 def aws_sync(req: AwsSyncRequest, db: Session = Depends(get_db)):
     """Pull real lineage data from an AWS account: AgentCore Runtime agents,
     Gateways + targets, Identity, Bedrock Guardrails, and Agent Registry records.
@@ -633,7 +809,7 @@ def aws_sync(req: AwsSyncRequest, db: Session = Depends(get_db)):
 
 # ---------- AgentCore Registry sync ----------
 
-@app.post("/api/v1/registry/sync")
+@app.post("/api/v1/registry/sync", dependencies=[Depends(rbac.require_admin)])
 def sync_registry(db: Session = Depends(get_db)):
     """Pull agent / MCP server / skill records from AgentCore Registry and
     enrich lineage nodes with their catalog metadata."""

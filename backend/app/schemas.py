@@ -229,6 +229,39 @@ class CedarDecisionOut(BaseModel):
     decided_at: Optional[datetime] = None
 
 
+# ---------- RBAC: identity & access requests ----------
+
+class MeOut(BaseModel):
+    """Who am I: role and account scope, for the frontend to shape the UI."""
+    auth_enabled: bool
+    role: Literal["admin", "viewer"]
+    email: str = ""
+    # None/absent list semantics flattened for the UI: admins get all
+    # namespaces; viewers get only those matching their grants.
+    allowed_entries: list[str] = Field(default_factory=list)  # raw grant entries
+    namespaces: list[str] = Field(default_factory=list)       # visible namespaces
+
+
+class AccessRequestIn(BaseModel):
+    account_name: str = Field(min_length=1, max_length=200)
+    account_id: str = Field(pattern=r"^\d{12}$")
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class AccessRequestOut(BaseModel):
+    id: int
+    requester_email: str
+    account_name: str
+    account_id: str
+    reason: str
+    status: str
+    created_at: Optional[datetime] = None
+    decided_at: Optional[datetime] = None
+    decided_by: str = ""
+
+    model_config = {"from_attributes": True}
+
+
 class AgentCatalogEntry(BaseModel):
     """One row in the AgentCore registry catalog search."""
     id: str

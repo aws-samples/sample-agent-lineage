@@ -1,4 +1,5 @@
 import type {
+  AccessRequest,
   AgentCost,
   CatalogEntry,
   CedarDecision,
@@ -6,6 +7,7 @@ import type {
   Graph,
   GuardrailIntervention,
   LlmStats,
+  MeInfo,
   NamespaceInfo,
   RunsPage,
   RunTimeline,
@@ -62,10 +64,15 @@ export async function syncAws(body: {
   return res.json() as Promise<AwsSyncResult>;
 }
 
-export function fetchGraph(nodeIds: string[] = [], depth = 5): Promise<Graph> {
+export function fetchGraph(
+  nodeIds: string[] = [],
+  depth = 5,
+  namespace?: string,
+): Promise<Graph> {
   const params = new URLSearchParams();
   nodeIds.forEach((id) => params.append("node_id", id));
   params.set("depth", String(depth));
+  if (namespace) params.set("namespace", namespace);
   return get<Graph>(`/lineage/graph?${params}`);
 }
 
@@ -104,9 +111,51 @@ export function cloudWatchTraceUrl(nodeId: string, runId: string): string | null
   return `https://${region}.console.aws.amazon.com/cloudwatch/home?region=${region}#xray:traces/${xrayId}`;
 }
 
-export function fetchCatalog(q?: string): Promise<CatalogEntry[]> {
-  const params = q ? `?q=${encodeURIComponent(q)}` : "";
-  return get<CatalogEntry[]>(`/search${params}`);
+export function fetchCatalog(q?: string, namespace?: string): Promise<CatalogEntry[]> {
+  const params = new URLSearchParams();
+  if (q) params.set("q", q);
+  if (namespace) params.set("namespace", namespace);
+  const qs = params.toString();
+  return get<CatalogEntry[]>(`/search${qs ? `?${qs}` : ""}`);
+}
+
+// ---------- RBAC: identity & access requests ----------
+
+export function fetchMe(): Promise<MeInfo> {
+  return get<MeInfo>(`/me`);
+}
+
+async function post<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    handleUnauthorized(res);
+    const detail = await res.json().catch(() => null);
+    throw new Error(detail?.detail ?? `${res.status} ${res.statusText}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+export function submitAccessRequest(body: {
+  account_name: string;
+  account_id: string;
+  reason: string;
+}): Promise<AccessRequest> {
+  return post<AccessRequest>(`/access-requests`, body);
+}
+
+export function fetchAccessRequests(): Promise<AccessRequest[]> {
+  return get<AccessRequest[]>(`/access-requests`);
+}
+
+export function decideAccessRequest(
+  id: number,
+  action: "approve" | "reject",
+): Promise<AccessRequest> {
+  return post<AccessRequest>(`/access-requests/${id}/decision`, { action });
 }
 
 export function fetchEvaluations(agentId: string): Promise<Evaluation[]> {

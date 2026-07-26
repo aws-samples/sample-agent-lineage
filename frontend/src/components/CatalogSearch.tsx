@@ -13,11 +13,13 @@ interface Props {
   onChange: (entries: CatalogEntry[]) => void;
   /** Bump to force a refetch (e.g. after an AWS sync completes). */
   refreshSignal?: number;
+  /** Limit results to one account/region namespace ("" = all in scope). */
+  namespace?: string;
 }
 
 /** Search the whole catalog — agents, tools, skills, gateways, LLMs and more —
  *  grouped by category. Pick one or more entries to focus the lineage graph. */
-export function CatalogSearch({ selected, onChange, refreshSignal = 0 }: Props) {
+export function CatalogSearch({ selected, onChange, refreshSignal = 0, namespace }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CatalogEntry[]>([]);
   const [open, setOpen] = useState(false);
@@ -25,10 +27,12 @@ export function CatalogSearch({ selected, onChange, refreshSignal = 0 }: Props) 
 
   useEffect(() => {
     const t = setTimeout(() => {
-      fetchCatalog(query || undefined).then(setResults).catch(() => setResults([]));
+      fetchCatalog(query || undefined, namespace || undefined)
+        .then(setResults)
+        .catch(() => setResults([]));
     }, 150);
     return () => clearTimeout(t);
-  }, [query, refreshSignal]);
+  }, [query, refreshSignal, namespace]);
 
   useEffect(() => {
     const close = (e: MouseEvent) => {

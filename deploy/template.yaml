@@ -24,6 +24,12 @@ Parameters:
     Description: >-
       Required when ExistingVpcId is set: two PUBLIC subnet IDs in different
       AZs, comma-separated (e.g. subnet-aaa,subnet-bbb). Must route to an IGW.
+  SesSenderEmail:
+    Type: String
+    Default: ""
+    Description: >-
+      Optional: SES-verified sender address for access-request notification
+      emails to admins. Leave empty to disable email notifications.
 
 Conditions:
   CreateNetwork: !Equals [!Ref ExistingVpcId, ""]
@@ -216,6 +222,20 @@ Resources:
                   - logs:FilterLogEvents
                   - logs:DescribeLogGroups
                 Resource: "*"
+              # RBAC: read roles/attributes, write namespace grants on approval.
+              - Sid: CognitoRbac
+                Effect: Allow
+                Action:
+                  - cognito-idp:AdminGetUser
+                  - cognito-idp:ListUsersInGroup
+                  - cognito-idp:AdminUpdateUserAttributes
+                Resource: !GetAtt UserPool.Arn
+              # Access-request notification emails to admins (no-op when
+              # SesSenderEmail is empty).
+              - Sid: AccessRequestNotify
+                Effect: Allow
+                Action: ses:SendEmail
+                Resource: "*"
 
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
@@ -245,6 +265,8 @@ Resources:
             - { Name: COGNITO_CLIENT_ID, Value: !Ref UserPoolClient }
             - { Name: COGNITO_REGION, Value: !Ref "AWS::Region" }
             - { Name: COGNITO_DOMAIN, Value: !Sub "agent-lineage-${AWS::AccountId}.auth.${AWS::Region}.amazoncognito.com" }
+            - { Name: ADMIN_GROUP, Value: admin }
+            - { Name: SES_SENDER, Value: !Ref SesSenderEmail }
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -419,6 +441,27 @@ Resources:
           RequireLowercase: true
           RequireUppercase: true
           RequireNumbers: true
+      Schema:
+        # Comma-separated account grants for viewers ("123456789012" grants
+        # all regions; "123456789012/us-east-1" grants one namespace).
+        - Name: allowed_namespaces
+          AttributeDataType: String
+          Mutable: true
+          StringAttributeConstraints: { MinLength: "0", MaxLength: "2048" }
+
+  AdminGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      UserPoolId: !Ref UserPool
+      GroupName: admin
+      Description: Full access - manage syncs, namespaces, and access requests
+
+  ViewerGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      UserPoolId: !Ref UserPool
+      GroupName: viewer
+      Description: Read-only access, scoped by custom:allowed_namespaces
 
   UserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
@@ -462,3 +505,8 @@ Outputs:
       aws cognito-idp admin-create-user --user-pool-id ${UserPool}
       --username you@example.com --user-attributes Name=email,Value=you@example.com
       Name=email_verified,Value=true --region ${AWS::Region}
+  AssignRoleHint:
+    Value: !Sub >-
+      aws cognito-idp admin-add-user-to-group --user-pool-id ${UserPool}
+      --username you@example.com --group-name admin --region ${AWS::Region}
+      (use group-name viewer for read-only users)

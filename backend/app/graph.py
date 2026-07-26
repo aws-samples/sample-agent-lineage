@@ -38,11 +38,31 @@ def _to_graph(nodes: list[models.Node], edges: list[models.Edge]) -> Graph:
     )
 
 
-def get_graph(db: Session, node_ids: Optional[list[str]] = None, depth: int = 5) -> Graph:
+def _scope_filter(
+    nodes: list[models.Node],
+    edges: list[models.Edge],
+    ns_allowed,
+) -> tuple[list[models.Node], list[models.Edge]]:
+    """Drop nodes outside the caller's namespace scope and edges touching them."""
+    if ns_allowed is None:
+        return nodes, edges
+    nodes = [n for n in nodes if ns_allowed(n.namespace)]
+    ids = {n.id for n in nodes}
+    edges = [e for e in edges if e.source_id in ids and e.target_id in ids]
+    return nodes, edges
+
+
+def get_graph(
+    db: Session,
+    node_ids: Optional[list[str]] = None,
+    depth: int = 5,
+    ns_allowed=None,  # Optional[Callable[[str], bool]]; None = unrestricted
+) -> Graph:
     all_edges = list(db.scalars(select(models.Edge)))
 
     if not node_ids:
         nodes = list(db.scalars(select(models.Node)))
+        nodes, all_edges = _scope_filter(nodes, all_edges, ns_allowed)
         return _to_graph(nodes, all_edges)
 
     # Directional lineage traversal (Marquez-style), not an undirected
@@ -78,4 +98,5 @@ def get_graph(db: Session, node_ids: Optional[list[str]] = None, depth: int = 5)
     walk(upstream, forward=False)
 
     nodes = list(db.scalars(select(models.Node).where(models.Node.id.in_(visited))))
-    return _to_graph(nodes, list(kept_edges.values()))
+    nodes, edges = _scope_filter(nodes, list(kept_edges.values()), ns_allowed)
+    return _to_graph(nodes, edges)

@@ -579,3 +579,45 @@ input, select, textarea { background-color: var(--surface); color: var(--text); 
   text-decoration: none; white-space: nowrap;
 }
 .trace-link:hover { text-decoration: underline; }
+
+/* ---- RBAC: access requests ---- */
+.pending-chip {
+  font-size: 10px; font-weight: 800; background: var(--chip-amber-bg, #fff3d6);
+  color: var(--chip-amber-text, #8a5a00);
+  padding: 1px 8px; border-radius: 999px;
+}
+[data-theme="dark"] .pending-chip { background: #3d3316; color: #ffc65c; }
+
+.ns-select select { max-width: 220px; }
+
+/* Topbar action buttons: kill the default focus-btn top margin so they align
+   with the Account/Window selects and Connect AWS. */
+.topbar .focus-btn { margin-top: 0; white-space: nowrap; }
+
+/* Scrollable, padded content area for modal sections below the header. */
+.modal-body { padding: 0 20px 16px; overflow-y: auto; }
+.modal-body h3 { margin: 12px 0 8px; font-size: 14px; }
+.modal-body .hint { margin: 0 0 8px; }
+.modal-body .aws-result { margin: 0 0 12px; }
+.modal-body .cost-table { width: 100%; }
+
+.access-request { max-width: 480px; width: 100%; text-align: center; }
+.access-request .access-form { text-align: left; padding: 12px 0; }
+.access-request .aws-form { padding-left: 0; padding-right: 0; }
+.access-form textarea {
+  padding: 7px 10px; border: 1px solid var(--border-strong); border-radius: 6px;
+  font-size: 13px; font-family: inherit; resize: vertical;
+}
+.access-ok {
+  margin: 10px 0; padding: 8px 12px; border-radius: 8px; font-size: 13px;
+  background: var(--chip-green-bg); color: var(--chip-green-text);
+}
+.access-history { margin-top: 18px; text-align: left; }
+.access-history h3 { font-size: 13px; margin-bottom: 6px; }
+
+.access-pending { border-left: 3px solid #e8a13c; }
+.access-date { float: right; font-size: 11px; color: var(--text-4); }
+.access-reason { font-size: 13px; color: var(--text-2); margin: 6px 0; font-style: italic; }
+.access-actions { display: flex; gap: 8px; }
+.approve-btn { background: var(--chip-green-bg); color: var(--chip-green-text); }
+.reject-btn { background: var(--chip-red-bg); color: var(--chip-red-text); }

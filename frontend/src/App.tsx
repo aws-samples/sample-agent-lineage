@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { fetchGraph, fetchNamespaces } from "./api";
+import { fetchGraph, fetchMe, fetchNamespaces } from "./api";
+import { AccessRequestForm } from "./components/AccessRequestForm";
+import { AccessRequestsModal } from "./components/AccessRequestsModal";
 import { AwsConnectModal } from "./components/AwsConnectModal";
 import { CatalogSearch } from "./components/CatalogSearch";
 import { DetailPanel } from "./components/DetailPanel";
@@ -9,6 +11,7 @@ import {
   type CatalogEntry,
   type Graph,
   type GraphNode,
+  type MeInfo,
   type NamespaceInfo,
   type NodeType,
 } from "./types";
@@ -27,6 +30,11 @@ export default function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [hideIsolated, setHideIsolated] = useState(false);
   const [namespaces, setNamespaces] = useState<NamespaceInfo[]>([]);
+  const [me, setMe] = useState<MeInfo | null>(null);
+  // "" = all accounts in scope; otherwise one selected namespace.
+  const [namespace, setNamespace] = useState<string>("");
+  const [showRequestsModal, setShowRequestsModal] = useState(false);
+  const [showRequestForm, setShowRequestForm] = useState(false);
   const [timeframe, setTimeframe] = useState<Timeframe>("30d");
   const [theme, setTheme] = useState<"light" | "dark">(
     () => (document.documentElement.dataset.theme === "dark" ? "dark" : "light"),
@@ -41,7 +49,12 @@ export default function App() {
 
   useEffect(() => {
     fetchNamespaces().then(setNamespaces).catch(() => setNamespaces([]));
+    fetchMe().then(setMe).catch(() => setMe(null));
   }, [refreshKey]);
+
+  const isAdmin = !me || me.role === "admin"; // fail open only pre-load; backend enforces
+  // A viewer with no grants sees the access-request form instead of the graph.
+  const noAccess = !!me && me.role === "viewer" && me.namespaces.length === 0;
 
   // Observability metrics (costs, runs, LLM stats) are scoped to this window.
   const since = useMemo(() => {
@@ -77,13 +90,13 @@ export default function App() {
   }, [graph, hiddenTypes, hideIsolated]);
 
   const load = useCallback((nodeIds: string[]) => {
-    fetchGraph(nodeIds)
+    fetchGraph(nodeIds, 5, namespace || undefined)
       .then((g) => {
         setGraph(g);
         setError(null);
       })
       .catch((e: Error) => setError(e.message));
-  }, []);
+  }, [namespace]);
 
   // Focus priority: explicit node focus (from detail panel) > catalog selection.
   // Nothing selected -> empty state (unless the user asked for the full graph).
@@ -125,11 +138,19 @@ export default function App() {
           </div>
         </div>
         {namespaces.length > 0 && (
-          <span className="ns-badges" title="Accounts / regions in this lineage graph">
-            {namespaces.map((ns) => (
-              <span key={ns.namespace} className="ns-badge">☁️ {ns.namespace}</span>
-            ))}
-          </span>
+          <label className="window-select ns-select" title="Scope the lineage to one account/region">
+            ☁️ Account
+            <select value={namespace} onChange={(e) => setNamespace(e.target.value)}>
+              <option value="">
+                {namespaces.length > 1 ? `All (${namespaces.length})` : "All"}
+              </option>
+              {namespaces.map((ns) => (
+                <option key={ns.namespace} value={ns.namespace}>
+                  {ns.namespace} ({ns.nodes})
+                </option>
+              ))}
+            </select>
+          </label>
         )}
         <label className="window-select">
           Window
@@ -148,9 +169,28 @@ export default function App() {
         >
           {theme === "dark" ? "☀️" : "🌙"}
         </button>
-        <button className="focus-btn aws-connect-btn" onClick={() => setShowAwsModal(true)}>
-          ☁️ Connect AWS
-        </button>
+        {isAdmin ? (
+          <>
+            <button
+              className="focus-btn"
+              title="Review viewer access requests"
+              onClick={() => setShowRequestsModal(true)}
+            >
+              🔑 Requests
+            </button>
+            <button className="focus-btn aws-connect-btn" onClick={() => setShowAwsModal(true)}>
+              ☁️ Connect AWS
+            </button>
+          </>
+        ) : (
+          <button
+            className="focus-btn"
+            title="Request access to another AWS account"
+            onClick={() => setShowRequestForm((v) => !v)}
+          >
+            🔑 Request access
+          </button>
+        )}
       </header>
 
       {showAwsModal && (
@@ -159,11 +199,15 @@ export default function App() {
           onSynced={() => setRefreshKey((k) => k + 1)}
         />
       )}
+      {showRequestsModal && (
+        <AccessRequestsModal onClose={() => setShowRequestsModal(false)} />
+      )}
 
       <div className="searchbar">
         <CatalogSearch
           selected={focusNodes}
           refreshSignal={refreshKey}
+          namespace={namespace}
           onChange={(entries) => {
             setFocusNodes(entries);
             setFocusNodeId(null);
@@ -201,6 +245,17 @@ export default function App() {
         )}
 
         <main className="canvas">
+          {(noAccess || showRequestForm) ? (
+            <div className="empty-state">
+              <AccessRequestForm />
+              {showRequestForm && !noAccess && (
+                <button className="focus-btn" onClick={() => setShowRequestForm(false)}>
+                  Back to lineage
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
           {error && <div className="error">Backend unreachable: {error}</div>}
           {visibleGraph ? (
             <LineageGraph graph={visibleGraph} onSelect={setSelected} />
@@ -218,6 +273,8 @@ export default function App() {
                 </button>
               </div>
             )
+          )}
+            </>
           )}
         </main>
 

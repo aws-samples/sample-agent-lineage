@@ -183,3 +183,23 @@ export const NODE_TYPE_META: Record<
   llm: { label: "LLM", color: "#d97706", icon: "🧠", column: 3 },
   resource: { label: "Resource", color: "#dc2626", icon: "🗄️", column: 4 },
 };
+
+export interface MeInfo {
+  auth_enabled: boolean;
+  role: "admin" | "viewer";
+  email: string;
+  allowed_entries: string[];
+  namespaces: string[];
+}
+
+export interface AccessRequest {
+  id: number;
+  requester_email: string;
+  account_name: string;
+  account_id: string;
+  reason: string;
+  status: "pending" | "approved" | "rejected";
+  created_at: string | null;
+  decided_at: string | null;
+  decided_by: string;
+}

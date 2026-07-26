@@ -124,6 +124,28 @@ class LlmUsage(Base):
     recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class AccessRequest(Base):
+    """A viewer's request for access to an AWS account's lineage data.
+
+    Requests are immutable history: rejected requests stay rejected and the
+    viewer files a new one. Approval appends the account id to the requester's
+    Cognito custom:allowed_namespaces attribute.
+    """
+    __tablename__ = "access_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    requester_sub: Mapped[str] = mapped_column(String, index=True)
+    requester_username: Mapped[str] = mapped_column(String, default="")
+    requester_email: Mapped[str] = mapped_column(String, default="")
+    account_name: Mapped[str] = mapped_column(String)
+    account_id: Mapped[str] = mapped_column(String)  # 12-digit AWS account id
+    reason: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String, default="pending")  # pending | approved | rejected
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    decided_by: Mapped[str] = mapped_column(String, default="")  # admin email/username
+
+
 class LineageEvent(Base):
     """Raw event storage for audit / replay (OpenLineage-style)."""
     __tablename__ = "lineage_events"
