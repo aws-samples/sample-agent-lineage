@@ -15,6 +15,10 @@ frontend/tsconfig.tsbuildinfo
 # Threat model exports (local artifacts, not source)
 .threatmodel/
 
+# Security scan artifacts (attach to tickets, don't commit)
+.ash-output/
+agent-lineage-security-evidence.zip
+
 # Env / secrets
 .env
 .env.*

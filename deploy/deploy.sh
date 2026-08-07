@@ -40,6 +40,15 @@ if [ -z "$SECRET" ] || [ "$SECRET" = "None" ]; then
   SECRET=$(openssl rand -hex 24)
 fi
 
+# Deployment-unique ExternalId for cross-account AssumeRole (confused-deputy
+# guard). Generated once, reused on updates so spoke trust policies stay valid.
+EXTERNAL_ID=$(aws cloudformation describe-stacks --stack-name "$STACK" --region "$REGION" \
+  --query "Stacks[0].Parameters[?ParameterKey=='SyncExternalId'].ParameterValue" \
+  --output text 2>/dev/null || true)
+if [ -z "$EXTERNAL_ID" ] || [ "$EXTERNAL_ID" = "None" ]; then
+  EXTERNAL_ID=$(uuidgen | tr '[:upper:]' '[:lower:]')
+fi
+
 # CloudFront origin-facing managed prefix list: locks the ALB security group
 # so only CloudFront edge nodes can reach it (ID differs per region).
 CF_PREFIX_LIST=$(aws ec2 describe-managed-prefix-lists --region "$REGION" \
@@ -81,6 +90,7 @@ aws cloudformation deploy \
   --template-file "$ROOT/deploy/template.yaml" \
   --capabilities CAPABILITY_NAMED_IAM \
   --parameter-overrides "ImageUri=${IMAGE_URI}" "OriginVerifySecret=${SECRET}" \
+    "SyncExternalId=${EXTERNAL_ID}" \
     "CloudFrontPrefixListId=${CF_PREFIX_LIST}" ${EXTRA_PARAMS[@]+"${EXTRA_PARAMS[@]}"}
 
 outputs() {
@@ -101,6 +111,10 @@ aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*" >/d
 
 echo ""
 echo "Deployed: ${APP_URL}"
+echo ""
+echo "Cross-account spoke setup: retrieve this deployment's ExternalId with:"
+echo "  aws cloudformation describe-stacks --stack-name ${STACK} --region ${REGION} \\"
+echo "    --query \"Stacks[0].Parameters[?ParameterKey=='SyncExternalId'].ParameterValue\" --output text"
 echo ""
 echo "Create your first user (email is the username):"
 echo "  aws cognito-idp admin-create-user --user-pool-id ${POOL_ID} \\"

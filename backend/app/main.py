@@ -188,7 +188,7 @@ def decide_access_request(
 
 # ---------- Registry (declared lineage) ----------
 
-@app.post("/api/v1/nodes", response_model=NodeOut)
+@app.post("/api/v1/nodes", response_model=NodeOut, dependencies=[Depends(rbac.require_admin)])
 def create_node(payload: NodeIn, db: Session = Depends(get_db)):
     nid = node_id(payload.namespace, payload.node_type, payload.name)
     node = db.get(models.Node, nid)
@@ -220,7 +220,7 @@ def get_node(nid: str, db: Session = Depends(get_db), entries=Depends(rbac.scope
     return node
 
 
-@app.post("/api/v1/edges", response_model=EdgeOut)
+@app.post("/api/v1/edges", response_model=EdgeOut, dependencies=[Depends(rbac.require_admin)])
 def create_edge(payload: EdgeIn, db: Session = Depends(get_db)):
     for nid in (payload.source_id, payload.target_id):
         if db.get(models.Node, nid) is None:
@@ -262,8 +262,15 @@ def _usage_by_run(db: Session, run_ids: list[str]) -> dict[str, tuple]:
     return {r[0]: (r[1], r[2], r[3]) for r in rows}
 
 
-@app.post("/api/v1/lineage/events", response_model=RunOut)
+@app.post(
+    "/api/v1/lineage/events",
+    response_model=RunOut,
+    dependencies=[Depends(rbac.require_admin)],
+)
 def post_lineage_event(event: AgentRunEvent, db: Session = Depends(get_db)):
+    """Ingest an observed runtime event. Admin-gated: decision/guardrail fields
+    become audit records, so writes are restricted to the admin persona (see
+    'Roles and trust model' in the README)."""
     run = ingest.ingest_event(db, event)
     return _run_out(run, _usage_by_run(db, [run.run_id]))
 
@@ -448,7 +455,11 @@ def agent_catalog(
 
 # ---------- Evaluations (AgentCore Evaluations) ----------
 
-@app.post("/api/v1/evaluations", response_model=EvaluationOut)
+@app.post(
+    "/api/v1/evaluations",
+    response_model=EvaluationOut,
+    dependencies=[Depends(rbac.require_admin)],
+)
 def create_evaluation(payload: EvaluationIn, db: Session = Depends(get_db)):
     if db.get(models.Node, payload.agent_id) is None:
         raise HTTPException(400, f"unknown agent: {payload.agent_id}")
@@ -792,6 +803,9 @@ class AwsSyncRequest(BaseModel):
     region: str = "us-east-1"
     profile: Optional[str] = None
     role_arn: Optional[str] = None
+    # Confused-deputy guard for cross-account AssumeRole. Defaults to the
+    # deployment's SYNC_EXTERNAL_ID; override for locally-run syncs.
+    external_id: Optional[str] = None
 
 
 @app.post("/api/v1/aws/sync", dependencies=[Depends(rbac.require_admin)])
@@ -802,7 +816,10 @@ def aws_sync(req: AwsSyncRequest, db: Session = Depends(get_db)):
     from .connectors.sync_all import sync_account
 
     try:
-        return sync_account(db, req.region, profile=req.profile, role_arn=req.role_arn)
+        return sync_account(
+            db, req.region,
+            profile=req.profile, role_arn=req.role_arn, external_id=req.external_id,
+        )
     except Exception as e:  # credential/STS failures before any module ran
         raise HTTPException(400, f"AWS session failed: {type(e).__name__}: {e}")
 

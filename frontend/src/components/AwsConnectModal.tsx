@@ -12,6 +12,7 @@ export function AwsConnectModal({ onClose, onSynced }: Props) {
   const [region, setRegion] = useState("us-east-1");
   const [profile, setProfile] = useState("");
   const [roleArn, setRoleArn] = useState("");
+  const [externalId, setExternalId] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<AwsSyncResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +26,7 @@ export function AwsConnectModal({ onClose, onSynced }: Props) {
         region,
         profile: profile || undefined,
         role_arn: roleArn || undefined,
+        external_id: externalId || undefined,
       });
       setResult(res);
       onSynced();
@@ -77,6 +79,16 @@ export function AwsConnectModal({ onClose, onSynced }: Props) {
               onChange={(e) => setRoleArn(e.target.value)}
             />
           </label>
+          {roleArn && (
+            <label>
+              External ID <small>(optional — defaults to this deployment's value; must match the spoke role's sts:ExternalId condition)</small>
+              <input
+                value={externalId}
+                placeholder="deployment external id"
+                onChange={(e) => setExternalId(e.target.value)}
+              />
+            </label>
+          )}
           <button className="focus-btn aws-sync-btn" disabled={busy} onClick={run}>
             {busy ? "Syncing…" : "Sync account"}
           </button>

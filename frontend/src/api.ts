@@ -50,6 +50,7 @@ export async function syncAws(body: {
   region: string;
   profile?: string;
   role_arn?: string;
+  external_id?: string;
 }): Promise<AwsSyncResult> {
   const res = await fetch(`${BASE}/aws/sync`, {
     method: "POST",

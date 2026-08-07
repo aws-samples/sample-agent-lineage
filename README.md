@@ -71,6 +71,10 @@ aws cognito-idp admin-create-user \
   --username you@example.com \
   --user-attributes Name=email,Value=you@example.com Name=email_verified,Value=true \
   --region us-west-2
+# Assign a role (required): admin manages syncs, ingestion and access requests;
+# viewer gets read-only access scoped to granted accounts
+aws cognito-idp admin-add-user-to-group --user-pool-id <UserPoolId> \
+  --username you@example.com --group-name admin --region us-west-2
 # Optional: set a permanent password directly
 aws cognito-idp admin-set-user-password --user-pool-id <UserPoolId> \
   --username you@example.com --password 'YourStrongPassword123' --permanent --region us-west-2
@@ -119,7 +123,16 @@ log groups.
 
 **Cross-account (hub-and-spoke):** create the role above in each spoke account with
 a trust policy allowing the hub's task role to assume it, then enter the spoke role
-ARN in the Connect AWS modal:
+ARN in the Connect AWS modal.
+
+The trust policy must require your deployment's **ExternalId** (confused-deputy
+guard). Each deployment generates its own unique value at stack creation — it is
+deliberately not printed here. **Never publish it**; retrieve it with:
+
+```bash
+aws cloudformation describe-stacks --stack-name agent-lineage --region <region> \
+  --query "Stacks[0].Parameters[?ParameterKey=='SyncExternalId'].ParameterValue" --output text
+```
 
 ```json
 {
@@ -129,15 +142,52 @@ ARN in the Connect AWS modal:
       "Effect": "Allow",
       "Principal": { "AWS": "arn:aws:iam::HUB_ACCOUNT_ID:role/agent-lineage-readonly-sync" },
       "Action": "sts:AssumeRole",
-      "Condition": { "StringEquals": { "sts:ExternalId": "agent-lineage" } }
+      "Condition": { "StringEquals": { "sts:ExternalId": "<YOUR_DEPLOYMENT_EXTERNAL_ID>" } }
     }
   ]
 }
 ```
 
+The hub automatically sends this ExternalId on every cross-account AssumeRole call
+(`SYNC_EXTERNAL_ID` env var, set by the stack). For locally-run syncs, pass
+`external_id` in the Connect AWS request instead.
+
 Note: the hub task role additionally needs `sts:AssumeRole` on
 `arn:aws:iam::*:role/agent-lineage-readonly` — not included in the stack by default
 (single-account deployments stay minimal); add it when enabling spokes.
+
+## Roles and trust model
+
+Two personas, enforced via Cognito user-pool groups:
+
+| | **Admin** (`admin` group) | **Viewer** (everyone else) |
+|---|---|---|
+| Read lineage, runs, costs, audit logs | ✔ All namespaces | ✔ Only granted accounts (`custom:allowed_namespaces`) |
+| Trigger AWS / registry sync, recompute costs | ✔ | ✘ |
+| Write APIs (`POST /nodes`, `/edges`, `/lineage/events`, `/evaluations`) | ✔ | ✘ |
+| Delete namespaces | ✔ | ✘ |
+| Approve/reject access requests | ✔ | Can submit requests only |
+
+Viewers with no grants see an in-app access-request form; admins are notified by
+email (SES, optional) and approve in-app, which writes the account grant to the
+requester's Cognito profile. Locally (no Cognito env vars) auth is disabled and
+everything runs as an unrestricted admin.
+
+**Trust model for governance records.** Cedar decisions, guardrail interventions,
+run trajectories and token/cost figures reflect **what the reporting pipeline
+observed and reported — they are not independently attested facts**. AgentCore
+Gateway and Bedrock Guardrails do not emit signed decision records, so Agent
+Lineage cannot cryptographically verify a claimed ALLOW/DENY or BLOCKED/PASSED
+against the control plane that made it. What bounds the risk:
+
+- **Write access is admin-only.** All ingestion endpoints require the admin role;
+  viewers cannot create or alter audit records.
+- **The primary data path is pull, not push.** In a deployed stack, records come
+  from the read-only, IAM-authenticated sync of AWS-generated telemetry
+  (CloudWatch OTel spans, service APIs) — not from caller-supplied payloads.
+- Records ingested via `POST /api/v1/lineage/events` carry whatever the producer
+  claimed. Treat them as operational evidence, not as a tamper-proof audit trail;
+  platform admins are trusted by design.
 
 ## Core concepts
 
@@ -153,17 +203,23 @@ Note: the hub task role additionally needs `sts:AssumeRole` on
 
 ## Key API endpoints
 
-| Endpoint | Purpose |
-|---|---|
-| `POST /api/v1/aws/sync` | Pull real data from an AWS account (region + optional profile/role ARN) |
-| `POST /api/v1/lineage/events` | Ingest observed runtime events (OTel-compatible; incl. token usage, gateway calls, guardrail events) |
-| `GET /api/v1/lineage/graph?node_id=&depth=` | Directional lineage graph; repeat `node_id` for multi-focus |
-| `GET /api/v1/search?q=` | Cross-type catalog search (agents, tools, skills, gateways, LLMs…) |
-| `GET /api/v1/runs`, `GET /api/v1/runs/{id}/timeline` | Paginated run history with cost rollups; per-run trajectory |
-| `GET /api/v1/costs/{agent_id}`, `GET /api/v1/llm-stats` | Cost attribution per agent / per model (time-windowed) |
-| `GET /api/v1/cedar-decisions`, `GET /api/v1/guardrail-interventions` | Governance audit logs |
-| `GET /api/v1/evaluations?agent_id=` | Online + on-demand evaluation results |
-| `DELETE /api/v1/namespaces/{ns}` | Purge one namespace (e.g. the demo dataset) |
+| Endpoint | Role | Purpose |
+|---|---|---|
+| `POST /api/v1/aws/sync` | admin | Pull real data from an AWS account (region + optional profile/role ARN) |
+| `POST /api/v1/lineage/events` | admin | Ingest observed runtime events (OTel-compatible; incl. token usage, gateway calls, guardrail events) |
+| `POST /api/v1/nodes`, `POST /api/v1/edges` | admin | Register declared lineage (catalog nodes, permissions) |
+| `POST /api/v1/evaluations` | admin | Record evaluation results |
+| `DELETE /api/v1/namespaces/{ns}` | admin | Purge one namespace (e.g. the demo dataset) |
+| `GET /api/v1/lineage/graph?node_id=&depth=` | any | Directional lineage graph; repeat `node_id` for multi-focus |
+| `GET /api/v1/search?q=` | any | Cross-type catalog search (agents, tools, skills, gateways, LLMs…) |
+| `GET /api/v1/runs`, `GET /api/v1/runs/{id}/timeline` | any | Paginated run history with cost rollups; per-run trajectory |
+| `GET /api/v1/costs/{agent_id}`, `GET /api/v1/llm-stats` | any | Cost attribution per agent / per model (time-windowed) |
+| `GET /api/v1/cedar-decisions`, `GET /api/v1/guardrail-interventions` | any | Governance audit logs |
+| `GET /api/v1/evaluations?agent_id=` | any | Online + on-demand evaluation results |
+| `POST /api/v1/access-requests` | any | Request viewer access to an account (admin approves in-app) |
+
+"any" = any authenticated user; viewer reads are additionally scoped to their
+granted accounts. Locally (auth disabled) all endpoints are open.
 
 ## Notes
 

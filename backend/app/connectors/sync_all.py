@@ -36,8 +36,9 @@ def sync_account(
     region: str,
     profile: str | None = None,
     role_arn: str | None = None,
+    external_id: str | None = None,
 ) -> dict:
-    session = make_session(region, profile=profile, role_arn=role_arn)
+    session = make_session(region, profile=profile, role_arn=role_arn, external_id=external_id)
     acct = account_id(session)  # also validates credentials up front
     namespace = f"{acct}/{region}"
 
