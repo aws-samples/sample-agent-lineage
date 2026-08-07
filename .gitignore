@@ -15,10 +15,10 @@ frontend/tsconfig.tsbuildinfo
 # Threat model exports (local artifacts, not source)
 .threatmodel/
 
-# Security scan artifacts (attach to tickets, don't commit)
+# Security scan working directories (raw scanner output stays local;
+# the curated evidence bundle agent-lineage-security-evidence.zip IS committed)
 .ash-output/
 .ash-output-recheck/
-agent-lineage-security-evidence.zip
 
 # Env / secrets
 .env
