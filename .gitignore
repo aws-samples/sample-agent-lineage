@@ -17,6 +17,7 @@ frontend/tsconfig.tsbuildinfo
 
 # Security scan artifacts (attach to tickets, don't commit)
 .ash-output/
+.ash-output-recheck/
 agent-lineage-security-evidence.zip
 
 # Env / secrets
