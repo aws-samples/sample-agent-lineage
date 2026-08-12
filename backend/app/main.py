@@ -53,6 +53,22 @@ app.add_middleware(
 
 # ---------- Authentication (Cognito JWT; disabled when env vars absent) ----------
 
+import os
+import secrets as _secrets
+
+# Service credential for the OTel translator (F5): a deployment-generated key
+# that authorizes ONLY the lineage-events ingestion endpoint. Set via the
+# IngestApiKey stack parameter -> INGEST_API_KEY env var; empty disables it.
+INGEST_API_KEY = os.environ.get("INGEST_API_KEY", "")
+INGEST_PATH = "/api/v1/lineage/events"
+_SERVICE_CLAIMS = {
+    "cognito:groups": [rbac.ADMIN_GROUP],
+    "sub": "svc-otel-translator",
+    "username": "svc-otel-translator",
+    "email": "svc-otel-translator@service",
+}
+
+
 @app.middleware("http")
 async def cognito_auth_middleware(request, call_next):
     if (
@@ -62,6 +78,12 @@ async def cognito_auth_middleware(request, call_next):
         or request.url.path in auth.PUBLIC_PATHS
     ):
         return await call_next(request)
+    # Machine identity: ingest key grants the events endpoint only.
+    if request.url.path == INGEST_PATH and INGEST_API_KEY:
+        provided = request.headers.get("x-ingest-key", "")
+        if provided and _secrets.compare_digest(provided, INGEST_API_KEY):
+            request.state.claims = _SERVICE_CLAIMS
+            return await call_next(request)
     header = request.headers.get("authorization", "")
     if header.startswith("Bearer "):
         try:
@@ -204,8 +226,14 @@ def create_node(payload: NodeIn, db: Session = Depends(get_db)):
 
 
 @app.get("/api/v1/nodes", response_model=list[NodeOut])
-def list_nodes(node_type: Optional[str] = None, db: Session = Depends(get_db)):
+def list_nodes(
+    node_type: Optional[str] = None,
+    db: Session = Depends(get_db),
+    entries=Depends(rbac.scope),
+):
     stmt = select(models.Node)
+    if entries is not None:
+        stmt = stmt.where(models.Node.namespace.in_(_visible_namespaces(db, entries)))
     if node_type:
         stmt = stmt.where(models.Node.node_type == node_type)
     return list(db.scalars(stmt))

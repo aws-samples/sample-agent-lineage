@@ -49,6 +49,14 @@ if [ -z "$EXTERNAL_ID" ] || [ "$EXTERNAL_ID" = "None" ]; then
   EXTERNAL_ID=$(uuidgen | tr '[:upper:]' '[:lower:]')
 fi
 
+# Service credential for the OTel translator ingestion path (reused on updates).
+INGEST_KEY=$(aws cloudformation describe-stacks --stack-name "$STACK" --region "$REGION" \
+  --query "Stacks[0].Parameters[?ParameterKey=='IngestApiKey'].ParameterValue" \
+  --output text 2>/dev/null || true)
+if [ -z "$INGEST_KEY" ] || [ "$INGEST_KEY" = "None" ] || [ "$INGEST_KEY" = "****" ]; then
+  INGEST_KEY=$(openssl rand -hex 24)
+fi
+
 # CloudFront origin-facing managed prefix list: locks the ALB security group
 # so only CloudFront edge nodes can reach it (ID differs per region).
 CF_PREFIX_LIST=$(aws ec2 describe-managed-prefix-lists --region "$REGION" \
@@ -90,7 +98,7 @@ aws cloudformation deploy \
   --template-file "$ROOT/deploy/template.yaml" \
   --capabilities CAPABILITY_NAMED_IAM \
   --parameter-overrides "ImageUri=${IMAGE_URI}" "OriginVerifySecret=${SECRET}" \
-    "SyncExternalId=${EXTERNAL_ID}" \
+    "SyncExternalId=${EXTERNAL_ID}" "IngestApiKey=${INGEST_KEY}" \
     "CloudFrontPrefixListId=${CF_PREFIX_LIST}" ${EXTRA_PARAMS[@]+"${EXTRA_PARAMS[@]}"}
 
 outputs() {

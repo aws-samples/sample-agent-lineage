@@ -621,16 +621,21 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
                   (node.facets.data_lineage as Record<string, unknown>).lineage_url,
                 );
                 const isPlaceholder = url.includes(".internal") || url.includes("example.com");
+                // Facet values are ingested data: only render as a link for
+                // http(s) schemes (blocks javascript:/data: stored XSS).
+                const isSafeUrl = /^https?:\/\//i.test(url);
                 return (
                   <>
-                    <a
-                      className="lineage-open-btn"
-                      href={url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Open dataset lineage in catalog ↗
-                    </a>
+                    {isSafeUrl && (
+                      <a
+                        className="lineage-open-btn"
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Open dataset lineage in catalog ↗
+                      </a>
+                    )}
                     <code className="mono-value">{url}</code>
                     {isPlaceholder && (
                       <div className="hint">

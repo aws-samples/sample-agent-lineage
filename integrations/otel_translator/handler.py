@@ -13,6 +13,7 @@ Span mapping (OpenTelemetry GenAI semantic conventions):
 Environment:
   LINEAGE_API   e.g. https://lineage.internal.example.com  (required)
   NAMESPACE     e.g. 123456789012/us-east-1                (required)
+  INGEST_KEY    deployment's IngestApiKey stack parameter  (required when deployed)
 """
 import base64
 import gzip
@@ -22,13 +23,19 @@ import urllib.request
 
 LINEAGE_API = os.environ.get("LINEAGE_API", "http://localhost:8000")
 NAMESPACE = os.environ.get("NAMESPACE", "default")
+# Service credential (deployment's IngestApiKey stack parameter). Required in
+# deployed environments; the API rejects unauthenticated ingestion.
+INGEST_KEY = os.environ.get("INGEST_KEY", "")
 
 
 def post_event(event: dict) -> None:
+    headers = {"Content-Type": "application/json"}
+    if INGEST_KEY:
+        headers["X-Ingest-Key"] = INGEST_KEY
     req = urllib.request.Request(
         f"{LINEAGE_API}/api/v1/lineage/events",
         data=json.dumps(event).encode(),
-        headers={"Content-Type": "application/json"},
+        headers=headers,
     )
     urllib.request.urlopen(req, timeout=10)
 
