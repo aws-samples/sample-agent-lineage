@@ -1,0 +1,31 @@
+{
+  "_comment": "Reviewed ASH findings that do not block CI. Every entry needs a reason. Keyed by (scanner, rule, file); line numbers intentionally ignored. See docs/SECURITY-BACKLOG.md for remediation timelines of accepted items.",
+  "allowlist": [
+    { "scanner": "detect-secrets", "rule": "SECRET-SECRET-KEYWORD", "file": "deploy/deploy.sh",
+      "reason": "False positive: shell variable named SECRET reads the existing CFN parameter at deploy time; no literal secret in source." },
+    { "scanner": "detect-secrets", "rule": "SECRET-SECRET-KEYWORD", "file": "deploy/template.yaml",
+      "reason": "False positive: NoEcho parameter name / user-creation hint text; no literal secret in source." },
+    { "scanner": "bandit", "rule": "B310", "file": "backend/examples/emit_event.py",
+      "reason": "Example script with fixed local URL; not part of the deployed service." },
+    { "scanner": "bandit", "rule": "B310", "file": "integrations/otel_translator/handler.py",
+      "reason": "urlopen targets the configured LINEAGE_API endpoint only; scheme controlled by deployment env var." },
+    { "scanner": "checkov", "rule": "CKV_AWS_91", "file": "deploy/template.yaml",
+      "reason": "ALB access logging: hardening backlog (SECURITY-BACKLOG.md)." },
+    { "scanner": "checkov", "rule": "CKV_AWS_18", "file": "deploy/template.yaml",
+      "reason": "S3 access logging: hardening backlog." },
+    { "scanner": "checkov", "rule": "CKV_AWS_86", "file": "deploy/template.yaml",
+      "reason": "CloudFront access logging: hardening backlog." },
+    { "scanner": "checkov", "rule": "CKV_AWS_2", "file": "deploy/template.yaml",
+      "reason": "HTTPS listener requires custom domain + ACM cert; tracked with transport-hardening backlog item." },
+    { "scanner": "checkov", "rule": "CKV_AWS_103", "file": "deploy/template.yaml",
+      "reason": "TLS policy applies to HTTPS listeners; same backlog item as CKV_AWS_2." },
+    { "scanner": "checkov", "rule": "CKV_AWS_174", "file": "deploy/template.yaml",
+      "reason": "Viewer TLS floor cannot be raised on the default CloudFront certificate; resolves with custom-domain work." },
+    { "scanner": "checkov", "rule": "CKV_AWS_68", "file": "deploy/template.yaml",
+      "reason": "WAF deferred for POC (recurring cost); documented accepted risk, revisit at production promotion." },
+    { "scanner": "checkov", "rule": "CKV_AWS_158", "file": "deploy/template.yaml",
+      "reason": "KMS on ECS log group: hardening backlog." },
+    { "scanner": "checkov", "rule": "CKV_AWS_21", "file": "deploy/template.yaml",
+      "reason": "S3 versioning: static frontend assets are fully redeployed each release; low value." }
+  ]
+}

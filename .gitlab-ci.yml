@@ -1,0 +1,61 @@
+# Security gates (PCSR requirement): every merge request runs ASH static
+# analysis; changes to the CloudFormation template additionally run IAM
+# Access Analyzer policy validation. Both fail the pipeline on unreviewed
+# findings, preventing regressions of previously remediated issues.
+#
+# Requirements:
+# - AWS credentials for the IAM Access Analyzer job must be provided via CI/CD
+#   variables (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_SESSION_TOKEN
+#   or an OIDC-assumed role). The credential only needs access-analyzer:ValidatePolicy.
+
+stages:
+  - security
+
+ash-scan:
+  stage: security
+  image: python:3.12
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    # Pinned ASH version for reproducible gating.
+    - pip install --quiet "git+https://github.com/awslabs/automated-security-helper.git@v3.5.8"
+    # ASH's own exit code is replaced by the allowlist-aware gate below.
+    - ash --mode local --source-dir . --output-dir .ash-ci || true
+    - python ci/check_ash_findings.py .ash-ci/reports/ash.flat.json .security/ash-allowlist.json
+  artifacts:
+    when: always
+    paths:
+      - .ash-ci/reports/
+    expire_in: 30 days
+
+iam-policy-validation:
+  stage: security
+  image: python:3.12
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - deploy/template.yaml
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - deploy/template.yaml
+  script:
+    - pip install --quiet awscli pyyaml
+    - python ci/extract_iam_policies.py deploy/template.yaml /tmp/iam-policies
+    - |
+      fail=0
+      gate() {  # gate <file> <extra validate-policy args...>
+        f="$1"; shift
+        echo "== Validating ${f}"
+        out=$(aws accessanalyzer validate-policy --policy-document "file://${f}" "$@") || { echo "validate-policy call failed"; fail=1; return; }
+        echo "$out"
+        blocked=$(echo "$out" | python -c "import json,sys; f=json.load(sys.stdin)['findings']; print(sum(1 for x in f if x['findingType'] in ('ERROR','SECURITY_WARNING')))")
+        [ "$blocked" != "0" ] && { echo "BLOCKING findings in ${f}"; fail=1; }
+      }
+      for f in /tmp/iam-policies/identity-*.json; do
+        [ -e "$f" ] && gate "$f" --policy-type IDENTITY_POLICY
+      done
+      for f in /tmp/iam-policies/trust-*.json; do
+        [ -e "$f" ] && gate "$f" --policy-type RESOURCE_POLICY --validate-policy-resource-type AWS::IAM::AssumeRolePolicyDocument
+      done
+      exit $fail
