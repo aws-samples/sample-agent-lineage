@@ -19,6 +19,7 @@ frontend/tsconfig.tsbuildinfo
 # the curated evidence bundle agent-lineage-security-evidence.zip IS committed)
 .ash-output/
 .ash-output-recheck/
+.ash-ci/
 
 # Env / secrets
 .env

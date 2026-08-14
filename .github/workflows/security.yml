@@ -24,8 +24,8 @@ jobs:
   ash-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       # Pinned ASH version for reproducible gating.
@@ -38,7 +38,7 @@ jobs:
         run: python ci/check_ash_findings.py .ash-ci/reports/ash.flat.json .security/ash-allowlist.json
       - name: Upload scan reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ash-reports
           path: .ash-ci/reports/
@@ -49,7 +49,7 @@ jobs:
     # Only when the template changed (checked in-job) and OIDC role configured.
     if: vars.AWS_CI_ROLE_ARN != ''
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 2
       - name: Check whether deploy/template.yaml changed
@@ -61,13 +61,13 @@ jobs:
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         if: steps.changed.outputs.run == 'true'
         with:
           python-version: "3.12"
       - name: Configure AWS credentials (OIDC)
         if: steps.changed.outputs.run == 'true'
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
         with:
           role-to-assume: ${{ vars.AWS_CI_ROLE_ARN }}
           aws-region: us-east-1

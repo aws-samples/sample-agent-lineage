@@ -66,15 +66,17 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # First pass (types only) so GetAtt can resolve resource types.
+    # CfnLoader subclasses yaml.SafeLoader (only adds CFN tag constructors),
+    # so yaml.load here is safe-load semantics; hence the nosec.
     types: dict[str, str] = {}
     _make_constructors(types)
     with open(template_path) as f:
-        doc = yaml.load(f, Loader=CfnLoader)
+        doc = yaml.load(f, Loader=CfnLoader)  # nosec B506 - CfnLoader extends SafeLoader
     for name, res in doc.get("Resources", {}).items():
         types[name] = res.get("Type", "")
     # Second pass with types available.
     with open(template_path) as f:
-        doc = yaml.load(f, Loader=CfnLoader)
+        doc = yaml.load(f, Loader=CfnLoader)  # nosec B506 - CfnLoader extends SafeLoader
 
     count = 0
     for name, res in doc.get("Resources", {}).items():

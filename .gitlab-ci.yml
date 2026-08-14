@@ -32,6 +32,9 @@ ash-scan:
 iam-policy-validation:
   stage: security
   image: python:3.12
+  variables:
+    # validate-policy is a regional API; any region works for policy checks.
+    AWS_DEFAULT_REGION: us-east-1
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:

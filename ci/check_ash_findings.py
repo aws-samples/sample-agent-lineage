@@ -41,6 +41,10 @@ def main() -> int:
         path = str(f.get("file_path") or "")
         if "node_modules/" in path or path.startswith(".venv") or "/.venv/" in path:
             continue  # third-party/dev tooling: tracked via dependency updates
+        if path.startswith((".ash-ci", ".ash-output")) or "__zip/" in path:
+            continue  # ASH's own output dirs and extracted archives (e.g. the
+            # committed evidence bundle): scan reports mention the word
+            # "secret" by nature; findings there are self-referential noise
         if key_of(f) not in allow:
             unknown.append(f)
 
