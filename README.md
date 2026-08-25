@@ -1,17 +1,17 @@
 # Agent Lineage — The Map of Agents
 
-Agent Lineage is an end-to-end provenance, governance, and cost visibility tool for
-agentic AI platforms built on Amazon Bedrock AgentCore. It syncs read-only from your
-AWS account and builds a living access graph — user groups → agents → sub-agents →
-skills → gateways → tools → LLMs → resources — where every connection is classified
-as **declared** (registered permission) or **observed** (proven by runtime traffic),
-making unused privileges and access drift visible at a glance. Around that graph it
-unifies the operational record: Cedar policy decisions per gateway, guardrail
-interventions, identity and credential chains, online and on-demand evaluation
-results, and full run trajectories rendered as execution graphs with token and
-dollar cost attribution per agent and per model. It ships as a single CloudFormation
-stack (CloudFront, Fargate, Cognito) with a React lineage UI — think
-*"OpenLineage for agents."*
+Agent Lineage is the map of your agents. As agentic AI moves into production, the
+hardest question is no longer "what can our agents do?" but "what are they actually
+doing — and with whose permissions?" Agent Lineage answers both: it syncs read-only
+from your AWS account and renders your Amazon Bedrock AgentCore platform as a living
+access graph — every user group, agent, sub-agent, skill, gateway, tool, LLM, and
+resource, with every connection classified as **declared** (registered permission)
+or **observed** (proven by runtime traffic). The gap between the two is where unused
+privileges and access drift live, visible at a glance. Runs, Cedar policy decisions,
+guardrail interventions, evaluation results, and token and dollar cost attribution
+per agent and per model all attach to the same graph. It ships as a single
+CloudFormation stack (CloudFront, Fargate, Cognito) with a React lineage UI —
+think *"OpenLineage for agents."*
 
 ```
 User Group → Agent → Sub-agents → Skills → Gateways → Tools / LLMs → Resources
