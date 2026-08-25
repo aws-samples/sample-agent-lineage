@@ -21,11 +21,12 @@ User Group → Agent → Sub-agents → Skills → Gateways → Tools / LLMs →
 
 ![Agent Lineage demo: searching the catalog, tracing an agent's lineage graph, and drilling into access, governance, cost and run trajectories](docs/img/demo.gif)
 
-*Thirty seconds with the seeded demo dataset: search the catalog for an agent,
-render its end-to-end lineage graph, then drill into the detail panel — declared
-vs observed access edges, governance (evaluations, Cedar policies), LLM cost
-attribution, and a failed run expanded into its execution trajectory. Reproduce
-it locally with the quick start below.*
+*A tour of the seeded demo dataset: search the catalog for an agent and render
+its end-to-end lineage graph, drill into declared vs observed access edges, LLM
+cost attribution, and a failed run's execution trajectory — then step into a
+gateway (Cedar permit/forbid policies, the ALLOW/DENY decision log, and the
+catalog of tools it routes to) and an LLM node showing the guardrail applied to
+the model. Reproduce it locally with the quick start below.*
 
 Research and architecture analysis: [`docs/RESEARCH.md`](docs/RESEARCH.md) ·
 Diagrams: [`deploy/architecture.drawio`](deploy/architecture.drawio),
