@@ -17,6 +17,16 @@ think *"OpenLineage for agents."*
 User Group → Agent → Sub-agents → Skills → Gateways → Tools / LLMs → Resources
 ```
 
+## Demo
+
+![Agent Lineage demo: searching the catalog, tracing an agent's lineage graph, and drilling into access, governance, cost and run trajectories](docs/img/demo.gif)
+
+*Thirty seconds with the seeded demo dataset: search the catalog for an agent,
+render its end-to-end lineage graph, then drill into the detail panel — declared
+vs observed access edges, governance (evaluations, Cedar policies), LLM cost
+attribution, and a failed run expanded into its execution trajectory. Reproduce
+it locally with the quick start below.*
+
 Research and architecture analysis: [`docs/RESEARCH.md`](docs/RESEARCH.md) ·
 Diagrams: [`deploy/architecture.drawio`](deploy/architecture.drawio),
 [`deploy/data-ingestion-flow.drawio`](deploy/data-ingestion-flow.drawio)
