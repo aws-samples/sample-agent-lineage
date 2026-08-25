@@ -21,6 +21,36 @@ Research and architecture analysis: [`docs/RESEARCH.md`](docs/RESEARCH.md) ·
 Diagrams: [`deploy/architecture.drawio`](deploy/architecture.drawio),
 [`deploy/data-ingestion-flow.drawio`](deploy/data-ingestion-flow.drawio)
 
+## Architecture
+
+![Agent Lineage — deployed architecture](deploy/architecture.svg)
+
+Users sign in through Cognito (hosted UI, PKCE, TOTP MFA) and reach the React app
+via CloudFront, which serves the SPA from a private S3 bucket (OAC) and forwards
+`/api/*` to an ALB that answers 403 to anything without the CloudFront
+origin-verify header. The FastAPI backend runs on ECS Fargate, persists the
+lineage graph to SQLite on encrypted EFS, and syncs AWS data with a strictly
+read-only IAM task role.
+
+Data arrives on two paths:
+
+- **Pull (primary)** — an admin-triggered sync reads Bedrock AgentCore (Runtime,
+  Gateway, Identity, Registry, Evaluations), Bedrock Guardrails, and OTel GenAI
+  spans from CloudWatch Logs (`aws/spans`).
+- **Push (optional, near-real-time)** — the streaming-ingestion Lambda
+  ([`integrations/otel_translator/handler.py`](integrations/otel_translator/handler.py))
+  sits behind a CloudWatch Logs subscription filter and translates OTel GenAI
+  spans into lineage run events (`invoke_agent` → START/COMPLETE/FAIL, `chat` →
+  ACCESS with token usage, `execute_tool` → ACCESS). Events are POSTed to
+  `/api/v1/lineage/events`, authenticated with the `X-Ingest-Key` service
+  credential held in SSM Parameter Store.
+
+Amazon SES is not part of ingestion: it is optional and only sends
+access-request notification emails to admins when a viewer requests access to an
+account (enabled via the `SesSenderEmail` stack parameter).
+
+Editable diagram source: [`deploy/architecture.drawio`](deploy/architecture.drawio).
+
 ## Stack
 
 - **Backend** — Python 3.12, FastAPI, SQLAlchemy (SQLite on EFS; Postgres-ready), boto3

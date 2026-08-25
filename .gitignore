@@ -29,3 +29,6 @@ frontend/tsconfig.tsbuildinfo
 # OS / editor
 .DS_Store
 *.swp
+# draw.io editor backup files
+.$*.bkp
+.$*.dtmp
