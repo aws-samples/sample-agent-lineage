@@ -259,3 +259,11 @@ granted accounts. Locally (auth disabled) all endpoints are open.
   (`AGENT_LINEAGE_SPANS_WINDOW_HOURS`, `AGENT_LINEAGE_EVAL_RESULTS_WINDOW_HOURS`).
 - Streaming ingestion skeleton: `integrations/otel_translator/handler.py`
   (CloudWatch Logs subscription → lineage events), for when pull-based sync isn't fresh enough.
+
+## Security
+
+See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+
+## License
+
+This library is licensed under the MIT-0 License. See the LICENSE file.
