@@ -330,6 +330,36 @@ body { margin: 0; background: var(--bg); font-family: -apple-system, "Segoe UI",
   font-size: 10px; font-weight: 800; background: var(--chip-green-bg); color: var(--chip-green-text);
   padding: 1px 8px; border-radius: 999px;
 }
+.mask-chip {
+  font-size: 10px; font-weight: 800; background: var(--chip-amber-bg); color: var(--chip-amber-text);
+  padding: 1px 8px; border-radius: 999px;
+}
+.category-breakdown { margin: 6px 0 10px; }
+.category-select {
+  font-size: 12px; padding: 4px 8px; border-radius: 6px;
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--surface-3);
+}
+
+/* ---- access tab: origin summary + grouped edges ---- */
+.access-summary {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  padding: 10px 14px 0;
+}
+.access-summary .origin { margin-left: 0; font-size: 11px; padding: 3px 10px; }
+.edge-group { margin-bottom: 10px; }
+.edge-group-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-3); margin: 10px 0 4px;
+  border-bottom: 1px solid var(--surface-3); padding-bottom: 3px;
+}
+.edge-meta { margin: 2px 0 0 22px; font-size: 11px; color: var(--text-3); }
+.edge-last-seen { display: inline-block; margin-right: 10px; }
+.edge-facets summary {
+  cursor: pointer; font-size: 11px; color: var(--text-3); user-select: none;
+  display: inline-block;
+}
+.edge-facets summary:hover { color: var(--text-2); }
+.edge-facets[open] summary { margin-bottom: 4px; }
 
 /* ---- layer toggles ---- */
 .layer-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; }

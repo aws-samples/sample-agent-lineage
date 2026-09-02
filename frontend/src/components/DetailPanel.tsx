@@ -25,6 +25,7 @@ import {
 import { CedarDecisionsExplorer } from "./CedarDecisionsExplorer";
 import { EvaluationsExplorer } from "./EvaluationsExplorer";
 import { GatewayToolsExplorer } from "./GatewayToolsExplorer";
+import { GuardrailInterventionsExplorer } from "./GuardrailInterventionsExplorer";
 import { RunsExplorer } from "./RunsExplorer";
 import { RunTimelineView } from "./RunTimelineView";
 
@@ -121,6 +122,34 @@ function OriginChip({ origin }: { origin: string }) {
   );
 }
 
+/** Least-privilege read of a set of edges at a glance. */
+function AccessSummary({ edges }: { edges: GraphEdge[] }) {
+  const count = (o: string) => edges.filter((e) => e.origin === o).length;
+  const both = count("both"), declared = count("declared"), observed = count("observed");
+  return (
+    <div className="access-summary">
+      {both > 0 && (
+        <span className="origin origin-both" title={ORIGIN_META.both.title}>
+          {both} declared ✓ observed
+        </span>
+      )}
+      {declared > 0 && (
+        <span className="origin origin-declared" title={ORIGIN_META.declared.title}>
+          {declared} declared, unused
+        </span>
+      )}
+      {observed > 0 && (
+        <span className="origin origin-observed" title={ORIGIN_META.observed.title}>
+          ⚠ {observed} undeclared
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** Undeclared (drift) first, then confirmed, then unused declarations. */
+const ORIGIN_RANK: Record<string, number> = { observed: 0, both: 1, declared: 2 };
+
 function EdgeList({
   edges,
   direction,
@@ -130,33 +159,68 @@ function EdgeList({
   direction: "up" | "down";
   nameOf: (id: string) => string;
 }) {
+  // Group by relationship type so the badge reads once per group instead of
+  // repeating on every row; largest groups first.
+  const groups = new Map<string, GraphEdge[]>();
+  for (const e of edges) {
+    const list = groups.get(e.edge_type) ?? [];
+    list.push(e);
+    groups.set(e.edge_type, list);
+  }
+  const ordered = [...groups.entries()].sort((a, b) => b[1].length - a[1].length);
   return (
-    <ul className="edge-list">
-      {edges.map((e) => {
-        const otherId = direction === "up" ? e.source : e.target;
-        return (
-          <li key={e.id} className="edge-item">
-            <div className="edge-head">
-              <span className="edge-arrow">{direction === "up" ? "←" : "→"}</span>
-              <span className="edge-node-name">{nameOf(otherId)}</span>
-              <span className="edge-type-badge">{e.edge_type.replace(/_/g, " ")}</span>
-              <OriginChip origin={e.origin} />
-              {e.call_count > 0 && <span className="count">{e.call_count} calls</span>}
-            </div>
-            {Object.keys(e.facets).length > 0 && (
-              <dl className="nested-facets edge-detail">
-                {Object.entries(e.facets).map(([k, v]) => (
-                  <div key={k} className="nested-row">
-                    <dt>{prettyKey(k)}</dt>
-                    <dd><FacetValue value={v} /></dd>
-                  </div>
-                ))}
-              </dl>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+    <>
+      {ordered.map(([edgeType, group]) => (
+        <div key={edgeType} className="edge-group">
+          <h4 className="edge-group-title">
+            {edgeType.replace(/_/g, " ")} <span className="count">({group.length})</span>
+          </h4>
+          <ul className="edge-list">
+            {[...group]
+              .sort(
+                (a, b) =>
+                  (ORIGIN_RANK[a.origin] ?? 3) - (ORIGIN_RANK[b.origin] ?? 3) ||
+                  b.call_count - a.call_count,
+              )
+              .map((e) => {
+                const otherId = direction === "up" ? e.source : e.target;
+                return (
+                  <li key={e.id} className="edge-item">
+                    <div className="edge-head">
+                      <span className="edge-arrow">{direction === "up" ? "←" : "→"}</span>
+                      <span className="edge-node-name">{nameOf(otherId)}</span>
+                      <OriginChip origin={e.origin} />
+                      {e.call_count > 0 && <span className="count">{e.call_count} calls</span>}
+                    </div>
+                    {(e.last_observed_at || Object.keys(e.facets).length > 0) && (
+                      <div className="edge-meta">
+                        {e.last_observed_at && (
+                          <span className="edge-last-seen">
+                            last observed {new Date(e.last_observed_at).toLocaleString()}
+                          </span>
+                        )}
+                        {Object.keys(e.facets).length > 0 && (
+                          <details className="edge-facets">
+                            <summary>details</summary>
+                            <dl className="nested-facets edge-detail">
+                              {Object.entries(e.facets).map(([k, v]) => (
+                                <div key={k} className="nested-row">
+                                  <dt>{prettyKey(k)}</dt>
+                                  <dd><FacetValue value={v} /></dd>
+                                </div>
+                              ))}
+                            </dl>
+                          </details>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+          </ul>
+        </div>
+      ))}
+    </>
   );
 }
 
@@ -175,12 +239,15 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
   const [llmStats, setLlmStats] = useState<LlmStats | null>(null);
   const [interventions, setInterventions] = useState<GuardrailIntervention[]>([]);
   const [showAllDecisions, setShowAllDecisions] = useState(false);
+  const [showAllInterventions, setShowAllInterventions] = useState(false);
+  const [showInterventionsExplorer, setShowInterventionsExplorer] = useState(false);
   const [tab, setTab] = useState<TabId>("overview");
   const [expandedRun, setExpandedRun] = useState<string | null>(null);
   const [timeline, setTimeline] = useState<RunTimeline | null>(null);
 
   useEffect(() => {
     setShowAllDecisions(false);
+    setShowAllInterventions(false);
     setTab("overview");
     setExpandedRun(null);
     setTimeline(null);
@@ -188,6 +255,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
     setShowEvalExplorer(false);
     setShowCedarExplorer(false);
     setShowToolsExplorer(false);
+    setShowInterventionsExplorer(false);
     setOwnerRuns([]);
     if (node.node_type === "agent") {
       fetchRuns(node.id, { limit: 50, since }) // 50 for version stats; UI shows the latest 5
@@ -209,7 +277,8 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
       setDecisions([]);
     }
     if (node.node_type === "guardrail") {
-      fetchGuardrailInterventions(node.id).then(setInterventions).catch(() => setInterventions([]));
+      // Match the explorer's window (backend max) so summary counts agree.
+      fetchGuardrailInterventions(node.id, 500).then(setInterventions).catch(() => setInterventions([]));
     } else {
       setInterventions([]);
     }
@@ -700,18 +769,56 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
         <section>
           <h3>🚧 Guardrail intervention log</h3>
           <div className="decision-summary">
-            <span className="origin origin-both">
+            <span className="deny-chip">
+              {interventions.filter((i) => i.action === "BLOCKED").length} blocked
+            </span>
+            <span className="mask-chip">
+              {interventions.filter((i) => i.action === "MASKED").length} masked
+            </span>
+            <span className="allow-chip">
               {interventions.filter((i) => i.action === "PASSED").length} passed
             </span>
-            <span className="deny-chip">{blockedCount} intervened</span>
+            <button
+              className="clear-all"
+              onClick={() => setShowAllInterventions((v) => !v)}
+            >
+              {showAllInterventions ? "interventions only" : "show all checks"}
+            </button>
           </div>
+          {(() => {
+            // Category breakdown of interventions: what this guardrail is
+            // actually catching (pii, prompt-injection, ...).
+            const byCategory = new Map<string, number>();
+            for (const i of interventions) {
+              if (i.action === "PASSED" || !i.category) continue;
+              byCategory.set(i.category, (byCategory.get(i.category) ?? 0) + 1);
+            }
+            if (byCategory.size === 0) return null;
+            return (
+              <div className="tag-row category-breakdown">
+                {[...byCategory.entries()]
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([cat, n]) => (
+                    <span key={cat} className="tag">{cat} × {n}</span>
+                  ))}
+              </div>
+            );
+          })()}
           <ul className="decision-list">
             {interventions
-              .filter((i) => i.action !== "PASSED")
-              .slice(0, 25)
+              .filter((i) => showAllInterventions || i.action !== "PASSED")
+              .slice(0, 5)
               .map((i) => (
                 <li key={i.id}>
-                  <span className="deny-chip">{i.action}</span>{" "}
+                  <span
+                    className={
+                      i.action === "PASSED" ? "allow-chip"
+                      : i.action === "MASKED" ? "mask-chip"
+                      : "deny-chip"
+                    }
+                  >
+                    {i.action}
+                  </span>{" "}
                   <b>{i.agent_name}</b>
                   {i.llm_name && <> → {i.llm_name}</>}
                   {i.category && <span className="tag" style={{ marginLeft: 6 }}>{i.category}</span>}
@@ -722,7 +829,21 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
                 </li>
               ))}
           </ul>
+          <button
+            className="focus-btn eval-browse-btn"
+            onClick={() => setShowInterventionsExplorer(true)}
+          >
+            Browse all {interventions.length} guardrail checks →
+          </button>
         </section>
+      )}
+
+      {showInterventionsExplorer && (
+        <GuardrailInterventionsExplorer
+          guardrailId={node.id}
+          guardrailName={node.name}
+          onClose={() => setShowInterventionsExplorer(false)}
+        />
       )}
 
       {tab === "overview" && node.node_type === "identity" && (
@@ -804,16 +925,20 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
         </section>
       )}
 
+      {tab === "access" && (incoming.length > 0 || outgoing.length > 0) && (
+        <AccessSummary edges={[...incoming, ...outgoing]} />
+      )}
+
       {tab === "access" && incoming.length > 0 && (
         <section>
-          <h3>Upstream ({incoming.length})</h3>
+          <h3>← Upstream ({incoming.length}) — what reaches this node</h3>
           <EdgeList edges={incoming} direction="up" nameOf={nameOf} />
         </section>
       )}
 
       {tab === "access" && outgoing.length > 0 && (
         <section>
-          <h3>Downstream ({outgoing.length})</h3>
+          <h3>→ Downstream ({outgoing.length}) — what this node uses</h3>
           <EdgeList edges={outgoing} direction="down" nameOf={nameOf} />
         </section>
       )}

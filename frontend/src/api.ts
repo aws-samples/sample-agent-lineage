@@ -170,9 +170,10 @@ export function fetchCost(agentId: string, since?: string): Promise<AgentCost> {
 
 export function fetchGuardrailInterventions(
   guardrailId: string,
+  limit?: number,
 ): Promise<GuardrailIntervention[]> {
   return get<GuardrailIntervention[]>(
-    `/guardrail-interventions?guardrail_id=${encodeURIComponent(guardrailId)}`,
+    `/guardrail-interventions?guardrail_id=${encodeURIComponent(guardrailId)}${limit ? `&limit=${limit}` : ""}`,
   );
 }
 
