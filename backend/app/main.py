@@ -577,6 +577,91 @@ def list_namespaces(db: Session = Depends(get_db), entries=Depends(rbac.scope)):
     ]
 
 
+@app.get("/api/v1/costs/by-caller")
+def costs_by_caller(
+    agent_id: Optional[str] = None,
+    caller: Optional[str] = None,
+    since: Optional[datetime] = None,
+    db: Session = Depends(get_db),
+    entries=Depends(rbac.scope),
+):
+    """Cost attribution per calling user group / OAuth client.
+
+    The caller is stamped onto each run at ingestion from the event's
+    `onBehalfOf` claim (Entra ID / Okta client id, span end-user claims...);
+    costs join runs to their per-run LLM usage rows. Filter by `agent_id`
+    ("who spends through this agent") or `caller` ("what does this client
+    spend, per agent").
+
+    NOTE: declared before /costs/{agent_id:path} — that route is a catch-all.
+    """
+    caller_col = models.Run.facets["caller"].as_string()
+    conditions = [caller_col.is_not(None)]
+    if agent_id:
+        if db.get(models.Node, agent_id) is None:
+            raise HTTPException(404, "agent not found")
+        _check_node_scope(db, agent_id, entries)
+        conditions.append(models.LlmUsage.agent_id == agent_id)
+    if caller:
+        conditions.append(caller_col == caller)
+    if since:
+        conditions.append(models.LlmUsage.recorded_at >= since)
+
+    rows = db.execute(
+        select(
+            caller_col.label("run_caller"),
+            models.LlmUsage.agent_id,
+            func.count(func.distinct(models.LlmUsage.run_id)),
+            func.sum(models.LlmUsage.input_tokens),
+            func.sum(models.LlmUsage.output_tokens),
+            func.sum(models.LlmUsage.cost_usd),
+        )
+        .join(models.Run, models.Run.run_id == models.LlmUsage.run_id)
+        .where(*conditions)
+        .group_by(caller_col, models.LlmUsage.agent_id)
+    ).all()
+    # Caller-level run counts (distinct across agents, so a run touching two
+    # agents is not double-counted at the caller level).
+    run_counts = dict(db.execute(
+        select(caller_col, func.count(func.distinct(models.LlmUsage.run_id)))
+        .select_from(models.LlmUsage)
+        .join(models.Run, models.Run.run_id == models.LlmUsage.run_id)
+        .where(*conditions)
+        .group_by(caller_col)
+    ).all())
+
+    callers: dict[str, dict] = {}
+    for caller_name, aid, runs_n, inp, out, cost in rows:
+        agent_node = db.get(models.Node, aid)
+        # Viewer scoping: drop agents outside the API caller's namespace grants.
+        if agent_node is not None and not rbac.ns_allowed(agent_node.namespace, entries):
+            continue
+        c = callers.setdefault(caller_name, {
+            "caller": caller_name,
+            "run_count": int(run_counts.get(caller_name) or 0),
+            "input_tokens": 0, "output_tokens": 0, "cost_usd": 0.0,
+            "by_agent": [],
+        })
+        c["by_agent"].append({
+            "agent_id": aid,
+            "agent_name": agent_node.name if agent_node else aid,
+            "run_count": int(runs_n or 0),
+            "input_tokens": int(inp or 0),
+            "output_tokens": int(out or 0),
+            "cost_usd": round(float(cost or 0), 4),
+        })
+        c["input_tokens"] += int(inp or 0)
+        c["output_tokens"] += int(out or 0)
+        c["cost_usd"] = round(c["cost_usd"] + float(cost or 0), 4)
+    result = sorted(callers.values(), key=lambda c: -c["cost_usd"])
+    for c in result:
+        c["by_agent"].sort(key=lambda a: -a["cost_usd"])
+    return {
+        "total_cost_usd": round(sum(c["cost_usd"] for c in result), 4),
+        "callers": result,
+    }
+
+
 @app.get("/api/v1/costs/{agent_id:path}", response_model=AgentCost)
 def agent_cost(
     agent_id: str,

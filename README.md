@@ -255,6 +255,7 @@ against the control plane that made it. What bounds the risk:
 | `GET /api/v1/search?q=` | any | Cross-type catalog search (agents, tools, skills, gateways, LLMs…) |
 | `GET /api/v1/runs`, `GET /api/v1/runs/{id}/timeline` | any | Paginated run history with cost rollups; per-run trajectory |
 | `GET /api/v1/costs/{agent_id}`, `GET /api/v1/llm-stats` | any | Cost attribution per agent / per model (time-windowed) |
+| `GET /api/v1/costs/by-caller?agent_id=&caller=` | any | Cost attribution per calling user group / OAuth client (e.g. Entra ID app), from the caller claim on each run |
 | `GET /api/v1/cedar-decisions`, `GET /api/v1/guardrail-interventions` | any | Governance audit logs |
 | `GET /api/v1/evaluations?agent_id=` | any | Online + on-demand evaluation results |
 | `POST /api/v1/access-requests` | any | Request viewer access to an account (admin approves in-app) |

@@ -99,6 +99,29 @@ export interface CedarDecision {
   decided_at: string | null;
 }
 
+export interface CallerAgentCost {
+  agent_id: string;
+  agent_name: string;
+  run_count: number;
+  input_tokens: number;
+  output_tokens: number;
+  cost_usd: number;
+}
+
+export interface CallerCost {
+  caller: string;
+  run_count: number;
+  input_tokens: number;
+  output_tokens: number;
+  cost_usd: number;
+  by_agent: CallerAgentCost[];
+}
+
+export interface CallerCosts {
+  total_cost_usd: number;
+  callers: CallerCost[];
+}
+
 export interface GuardrailIntervention {
   id: number;
   run_id: string;

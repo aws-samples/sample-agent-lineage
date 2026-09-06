@@ -115,6 +115,10 @@ def ingest_event(db: Session, event: AgentRunEvent) -> models.Run:
     if event.on_behalf_of:
         group = upsert_node(db, event.on_behalf_of)
         upsert_edge(db, group.id, agent.id, "INVOKES", "observed", ts)
+        # Stamp the caller onto the run so cost/usage can be attributed per
+        # calling user group / OAuth client (see /api/v1/costs/by-caller).
+        if "caller" not in (run.facets or {}):
+            run.facets = {**(run.facets or {}), "caller": group.name, "caller_id": group.id}
     for ref, edge_type in (
         *[(r, "DELEGATES_TO") for r in event.sub_agents],
         *[(r, "USES_TOOL") for r in event.tools],

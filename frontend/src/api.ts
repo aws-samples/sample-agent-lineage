@@ -1,6 +1,7 @@
 import type {
   AccessRequest,
   AgentCost,
+  CallerCosts,
   CatalogEntry,
   CedarDecision,
   Evaluation,
@@ -166,6 +167,18 @@ export function fetchEvaluations(agentId: string): Promise<Evaluation[]> {
 export function fetchCost(agentId: string, since?: string): Promise<AgentCost> {
   const params = since ? `?since=${encodeURIComponent(since)}` : "";
   return get<AgentCost>(`/costs/${agentId}${params}`);
+}
+
+export function fetchCallerCosts(opts: {
+  agentId?: string;
+  caller?: string;
+  since?: string;
+}): Promise<CallerCosts> {
+  const p = new URLSearchParams();
+  if (opts.agentId) p.set("agent_id", opts.agentId);
+  if (opts.caller) p.set("caller", opts.caller);
+  if (opts.since) p.set("since", opts.since);
+  return get<CallerCosts>(`/costs/by-caller?${p.toString()}`);
 }
 
 export function fetchGuardrailInterventions(

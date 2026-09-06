@@ -72,11 +72,20 @@ GUARDRAILS = [
 ]
 
 # ---------------- User groups (4) ----------------
+# Modeled as Microsoft Entra ID app registrations: each group is the OAuth
+# client (client_id) allowed by the runtime's custom JWT authorizer, backed by
+# an Entra security group (group_object_id). Demo GUIDs, not real tenants.
+ENTRA_TENANT_ID = "3f2a9b1c-6d4e-4f8a-9c7b-2e1d5a8f0b3c"
+# (name, description, members, entra_client_id, entra_group_object_id)
 USER_GROUPS = [
-    ("support-team", "Tier-1/2 customer support staff", 64),
-    ("finance-ops", "Finance operations analysts", 22),
-    ("hr-partners", "HR business partners", 15),
-    ("devops-oncall", "DevOps on-call engineers", 31),
+    ("support-team", "Tier-1/2 customer support staff (support portal app)", 64,
+     "8c1f5e2a-9b3d-4c7e-a1f6-0d2b8e4c9a71", "5e9d3c1b-2a7f-4e8c-b6d0-1f4a7c3e9b52"),
+    ("finance-ops", "Finance operations analysts (finance workbench app)", 22,
+     "2b7e4d9c-1a5f-4b3e-8c6d-9f0a2e5b7c14", "a4c8e2f6-0b1d-4a9e-7c3b-6e5d9f2a8c40"),
+    ("hr-partners", "HR business partners (HR self-service app)", 15,
+     "6d3a8f1e-4c9b-4e7a-b2c5-0e8d1f6a3b97", "c1e5a9d3-7f2b-4c6e-9a0d-3b8f5e1c7a26"),
+    ("devops-oncall", "DevOps on-call engineers (incident console app)", 31,
+     "9f5c2e7b-8d1a-4f6c-a3e9-7b0c4d2f8e15", "e7b3f1c9-5a8d-4e2b-8f6a-1c9e0d4b7f38"),
 ]
 
 # ---------------- Resources (10, 8 kinds, with data lineage) ----------------
@@ -402,11 +411,20 @@ EVALUATIONS = [
 
 
 def _seed_nodes_and_edges(db) -> None:
-    # User groups.
-    for name, desc, members in USER_GROUPS:
+    # User groups (Entra ID app registrations allowed by the inbound authorizer).
+    for name, desc, members, client_id, group_oid in USER_GROUPS:
         n = upsert_node(db, EntityRef(node_type="user_group", name=name, facets={
-            "idp": "okta", "members": members,
-            "access_via": "AgentCore Identity (inbound OAuth)",
+            "idp": "Microsoft Entra ID",
+            "kind": "OAuth client (inbound authorizer)",
+            "client_id": client_id,
+            "tenant_id": ENTRA_TENANT_ID,
+            "entra_group_object_id": group_oid,
+            "idp_discovery_url": (
+                f"https://login.microsoftonline.com/{ENTRA_TENANT_ID}"
+                "/v2.0/.well-known/openid-configuration"
+            ),
+            "members": members,
+            "access_via": "AgentCore Runtime custom JWT authorizer",
         }))
         n.description = desc
 
@@ -514,7 +532,7 @@ def _seed_nodes_and_edges(db) -> None:
         for g in a.get("groups", []):
             upsert_edge(db, nid("user_group", g), aid, "INVOKES", origin="declared",
                         facets={"mechanism": "AgentCore Runtime invoke",
-                                "auth": "OAuth2 inbound (AgentCore Identity)"})
+                                "auth": "OAuth2 JWT (Entra ID, custom authorizer)"})
         for sub in a.get("subs", []):
             mech = ({"mechanism": "A2A", "auth": "OAuth2 client-credentials (Identity vault)"}
                     if sub == "fraud-review-agent"

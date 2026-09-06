@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   cloudWatchTraceUrl,
+  fetchCallerCosts,
   fetchCedarDecisions,
   fetchCost,
   fetchEvaluations,
@@ -12,6 +13,7 @@ import {
 import {
   NODE_TYPE_META,
   type AgentCost,
+  type CallerCosts,
   type CedarDecision,
   type Evaluation,
   type Graph,
@@ -238,6 +240,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
   const [decisions, setDecisions] = useState<CedarDecision[]>([]);
   const [llmStats, setLlmStats] = useState<LlmStats | null>(null);
   const [interventions, setInterventions] = useState<GuardrailIntervention[]>([]);
+  const [callerCosts, setCallerCosts] = useState<CallerCosts | null>(null);
   const [showAllDecisions, setShowAllDecisions] = useState(false);
   const [showAllInterventions, setShowAllInterventions] = useState(false);
   const [showInterventionsExplorer, setShowInterventionsExplorer] = useState(false);
@@ -281,6 +284,15 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
       fetchGuardrailInterventions(node.id, 500).then(setInterventions).catch(() => setInterventions([]));
     } else {
       setInterventions([]);
+    }
+    // Caller attribution: who spends through this agent / what this calling
+    // client (e.g. Entra ID app registration) spends, per agent.
+    if (node.node_type === "agent") {
+      fetchCallerCosts({ agentId: node.id, since }).then(setCallerCosts).catch(() => setCallerCosts(null));
+    } else if (node.node_type === "user_group") {
+      fetchCallerCosts({ caller: node.name, since }).then(setCallerCosts).catch(() => setCallerCosts(null));
+    } else {
+      setCallerCosts(null);
     }
   }, [node, since]);
 
@@ -357,7 +369,8 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
       show:
         (cost !== null && cost.by_llm.length > 0) ||
         runs.length > 0 ||
-        (llmStats !== null && llmStats.invocations > 0),
+        (llmStats !== null && llmStats.invocations > 0) ||
+        (callerCosts !== null && callerCosts.callers.length > 0),
     },
   ];
 
@@ -718,6 +731,66 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
               })()}
           </section>
         )}
+
+      {tab === "usage" && node.node_type === "agent" && callerCosts && callerCosts.callers.length > 0 && (
+        <section>
+          <h3>👥 Cost by caller</h3>
+          <p className="hint run-hint">
+            Which user groups / OAuth clients this agent's spend is attributable
+            to, from the caller claim on each run.
+          </p>
+          <table className="cost-table">
+            <thead>
+              <tr><th>Caller</th><th>Runs</th><th>Tokens (in/out)</th><th>Cost</th></tr>
+            </thead>
+            <tbody>
+              {callerCosts.callers.map((c) => (
+                <tr key={c.caller}>
+                  <td>{c.caller}</td>
+                  <td>{c.run_count}</td>
+                  <td>{c.input_tokens.toLocaleString()} / {c.output_tokens.toLocaleString()}</td>
+                  <td>${c.cost_usd.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      {tab === "usage" && node.node_type === "user_group" && callerCosts && callerCosts.callers.length > 0 && (
+        <section>
+          <h3>💰 Cost incurred by this caller</h3>
+          {(() => {
+            const me = callerCosts.callers[0];
+            return (
+              <>
+                <div className="cost-summary">
+                  <div className="cost-big">${me.cost_usd.toFixed(2)}</div>
+                  <div className="cost-sub">
+                    {me.run_count} runs · {me.input_tokens.toLocaleString()} in /{" "}
+                    {me.output_tokens.toLocaleString()} out tokens
+                  </div>
+                </div>
+                <table className="cost-table">
+                  <thead>
+                    <tr><th>Agent</th><th>Runs</th><th>Tokens (in/out)</th><th>Cost</th></tr>
+                  </thead>
+                  <tbody>
+                    {me.by_agent.map((a) => (
+                      <tr key={a.agent_id}>
+                        <td>{a.agent_name}</td>
+                        <td>{a.run_count}</td>
+                        <td>{a.input_tokens.toLocaleString()} / {a.output_tokens.toLocaleString()}</td>
+                        <td>${a.cost_usd.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            );
+          })()}
+        </section>
+      )}
 
       {tab === "usage" && isLlm && llmStats && llmStats.invocations > 0 && (
         <section>
