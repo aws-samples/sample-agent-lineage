@@ -78,26 +78,34 @@ async function exchangeCode(cfg: AuthConfig, code: string): Promise<boolean> {
   return true;
 }
 
-/** Resolve when the app may render: auth disabled, or a valid token exists.
- *  Otherwise redirects to the Cognito hosted UI (never resolves). */
-export async function initAuth(): Promise<void> {
+export type AuthState =
+  /** Auth disabled (local dev) or a valid session exists: render the app. */
+  | { kind: "ready"; enabled: boolean }
+  /** No session: show the landing page; `signIn` starts the hosted-UI flow. */
+  | { kind: "signed-out"; signIn: () => Promise<void> }
+  /** Backend unreachable: render the app so it can show its error state. */
+  | { kind: "unreachable" };
+
+/** Resolve the initial auth state. Completes a PKCE code exchange when the
+ *  hosted UI redirected back with ?code=, but never redirects on its own —
+ *  the landing page's Sign-in action does that. Credentials are only ever
+ *  entered on the Cognito hosted UI. */
+export async function initAuth(): Promise<AuthState> {
   let cfg: AuthConfig;
   try {
     cfg = await (await fetch("/api/v1/auth/config")).json();
   } catch {
-    return; // backend unreachable — let the app render its error state
+    return { kind: "unreachable" };
   }
-  if (!cfg.enabled) return;
+  if (!cfg.enabled) return { kind: "ready", enabled: false };
 
   const query = new URLSearchParams(window.location.search);
   const code = query.get("code");
   if (code) {
     const ok = await exchangeCode(cfg, code);
     window.history.replaceState({}, "", window.location.pathname);
-    if (ok) return;
+    if (ok) return { kind: "ready", enabled: true };
   }
-  if (getToken()) return;
-  await redirectToLogin(cfg);
-  // Redirecting; block rendering forever.
-  return new Promise(() => {});
+  if (getToken()) return { kind: "ready", enabled: true };
+  return { kind: "signed-out", signIn: () => redirectToLogin(cfg) };
 }

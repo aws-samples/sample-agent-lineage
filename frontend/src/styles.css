@@ -810,3 +810,163 @@ button:disabled { cursor: not-allowed; }
 .access-actions { display: flex; gap: 8px; }
 .approve-btn { background: var(--chip-green-bg); color: var(--chip-green-text); }
 .reject-btn { background: var(--chip-red-bg); color: var(--chip-red-text); }
+
+/* =====================================================================
+   LANDING (pre-auth, Persuade surface)
+   The one place authored motion is earned: the hero graph draws itself in
+   once, then the undeclared edge fires amber. Sign-in hands off to the
+   Cognito hosted UI — no credentials are ever entered on this page.
+   ===================================================================== */
+.landing {
+  min-height: 100dvh; display: flex; flex-direction: column;
+  background:
+    radial-gradient(1100px 520px at 78% 18%, rgba(245, 165, 36, 0.07), transparent 60%),
+    radial-gradient(900px 600px at 15% 90%, rgba(111, 168, 255, 0.06), transparent 60%),
+    var(--bg);
+  color: var(--text);
+}
+[data-theme="light"] .landing {
+  background:
+    radial-gradient(1100px 520px at 78% 18%, rgba(217, 138, 0, 0.09), transparent 60%),
+    radial-gradient(900px 600px at 15% 90%, rgba(33, 96, 216, 0.06), transparent 60%),
+    var(--bg);
+}
+/* fine graph-paper grid, like the console canvas — quiet, structural */
+.landing::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    linear-gradient(var(--hairline) 1px, transparent 1px),
+    linear-gradient(90deg, var(--hairline) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at 60% 40%, black 30%, transparent 75%);
+}
+.landing > * { position: relative; z-index: 1; }
+
+.landing-top {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 64px; padding: 0 clamp(20px, 4vw, 56px);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.landing-hero {
+  display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.25fr);
+  gap: clamp(28px, 5vw, 72px); align-items: center;
+  padding: clamp(40px, 7vh, 96px) clamp(20px, 4vw, 56px) clamp(24px, 4vh, 48px);
+  max-width: 1440px; width: 100%; margin: 0 auto;
+  /* The hero owns the flexible space; beats + footer sit together as the base. */
+  flex: 1 0 auto;
+}
+.landing-title {
+  margin: 0 0 18px; font-size: clamp(38px, 4.6vw, 64px); font-weight: 700;
+  letter-spacing: -0.035em; line-height: 1.0; color: var(--text);
+}
+.landing-lead {
+  margin: 0 0 30px; font-size: clamp(15px, 1.25vw, 18px); line-height: 1.55;
+  color: var(--text-2); max-width: 46ch;
+}
+.landing-lead em { font-style: normal; color: var(--text); font-weight: 600; }
+.landing-actions { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.landing-signin {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 20px; border-radius: 9px; font-size: 14px; font-weight: 600;
+  background: var(--text); color: var(--bg); border: 1px solid transparent; cursor: pointer;
+  box-shadow: var(--shadow-2);
+}
+.landing-signin:hover:not(:disabled) { background: var(--text-2); }
+.landing-signin:disabled { opacity: 0.6; }
+.landing-signin .icon { margin: 0; }
+.landing-signin-quiet {
+  background: transparent; color: var(--text); border-color: var(--hairline-strong);
+  padding: 7px 14px; font-size: 13px; box-shadow: none;
+}
+.landing-signin-quiet:hover:not(:disabled) { background: var(--surface-3); }
+.landing-auth-note { font-size: 12px; color: var(--text-3); }
+
+/* ---- hero stage: subtle depth, no WebGL ---- */
+.landing-stage { perspective: 1400px; min-width: 0; }
+.landing-tilt {
+  transform: rotateY(-9deg) rotateX(4deg);
+  transform-origin: 50% 50%;
+  background: var(--surface); border: 1px solid var(--hairline-strong); border-radius: 14px;
+  box-shadow: var(--shadow-3), 0 0 0 1px rgba(255,255,255,0.02) inset;
+  padding: 16px; animation: tilt-in 1.1s var(--ease-out) both;
+  background-image:
+    radial-gradient(circle at 1px 1px, var(--hairline-strong) 1px, transparent 1.5px);
+  background-size: 24px 24px;
+}
+@keyframes tilt-in {
+  from { opacity: 0; transform: rotateY(-14deg) rotateX(7deg) translateY(16px); }
+  to   { opacity: 1; transform: rotateY(-9deg) rotateX(4deg) translateY(0); }
+}
+.hero-graph { display: block; width: 100%; height: auto; overflow: visible; }
+
+/* nodes pop in */
+.hn { opacity: 0; animation: hn-in .5s var(--ease-out) both; animation-delay: var(--d); }
+@keyframes hn-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.hn-box { fill: var(--surface-2); stroke-width: 1.4; }
+.hn-cap { opacity: 0.95; }
+.hn-label { font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; fill: var(--text); }
+
+/* edges draw in, then packets flow */
+.he-line {
+  fill: none; stroke-width: 1.6; stroke-linecap: round;
+  stroke-dasharray: 600; stroke-dashoffset: 600;
+  animation: he-draw 1.1s var(--ease-out) both; animation-delay: var(--d);
+}
+@keyframes he-draw { to { stroke-dashoffset: 0; } }
+.he-declared .he-line { stroke: var(--text-4); stroke-dasharray: 600; }
+.he-declared .he-line { animation-name: he-draw-dashed; }
+@keyframes he-draw-dashed { to { stroke-dashoffset: 0; stroke-dasharray: 5 5; } }
+.he-both .he-line { stroke: var(--ok); }
+.he-observed .he-line { stroke: var(--signal); stroke-width: 2.4; filter: url(#glow); }
+.he-packet { fill: var(--ok); opacity: 0; animation: packet-in .3s both; animation-delay: calc(var(--d) + 0.9s); }
+.he-observed .he-packet { fill: var(--signal); }
+@keyframes packet-in { to { opacity: 1; } }
+.he-tag {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; fill: var(--signal); opacity: 0;
+  animation: tag-in .4s var(--ease-out) both; animation-delay: calc(var(--d) + 1.0s);
+}
+@keyframes tag-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+
+/* ---- three beats ---- */
+.landing-beats {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 1440px; width: 100%; margin: 0 auto;
+  padding: 0 clamp(20px, 4vw, 56px) clamp(32px, 5vh, 56px);
+  gap: 1px; background: var(--hairline);
+  border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline);
+  /* the hairline grid is the background; each beat paints over it */
+  padding-top: 0; padding-bottom: 0; margin-bottom: 0;
+}
+.beat { background: var(--bg); padding: 26px clamp(18px, 2.2vw, 32px) 30px; }
+.beat-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; color: var(--text-2); }
+.beat-head .icon { margin: 0; }
+.beat-signal .beat-head { color: var(--signal-text); }
+.beat h2 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); }
+.beat p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--text-2); max-width: 44ch; }
+
+.landing-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 16px clamp(20px, 4vw, 56px); border-top: 1px solid var(--hairline);
+  font-size: 12px; color: var(--text-3);
+}
+.landing-foot-right { display: flex; gap: 16px; }
+.landing-legend { display: inline-flex; align-items: center; gap: 7px; }
+.landing-legend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid; }
+.lg-dash { border-top-style: dashed !important; border-color: var(--text-4); }
+.lg-ok { border-color: var(--ok); }
+.lg-signal { border-color: var(--signal); }
+
+@media (max-width: 900px) {
+  .landing-hero { grid-template-columns: 1fr; }
+  .landing-tilt { transform: none; animation: none; opacity: 1; }
+  .landing-beats { grid-template-columns: 1fr; }
+  .landing-foot { flex-direction: column; align-items: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-tilt { animation: none; transform: rotateY(-9deg) rotateX(4deg); }
+  .hn, .he-line, .he-packet, .he-tag { animation: none; opacity: 1; stroke-dashoffset: 0; }
+  .he-declared .he-line { stroke-dasharray: 5 5; }
+  .he-packet { display: none; }
+}
