@@ -274,6 +274,19 @@ Resources:
                 Effect: Allow
                 Action: ses:SendEmail
                 Resource: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*"
+              # ECS Exec: lets an operator run one-off commands inside the
+              # task (e.g. `python -m app.seed` to load the demo dataset onto
+              # the EFS-backed database). The SSM channel is the only thing
+              # granted; who may *call* execute-command is governed by the
+              # operator's own IAM identity, not this role.
+              - Sid: EcsExecChannel
+                Effect: Allow
+                Action:
+                  - ssmmessages:CreateControlChannel
+                  - ssmmessages:CreateDataChannel
+                  - ssmmessages:OpenControlChannel
+                  - ssmmessages:OpenDataChannel
+                Resource: "*"
 
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
@@ -326,6 +339,7 @@ Resources:
       Cluster: !Ref Cluster
       LaunchType: FARGATE
       DesiredCount: 1
+      EnableExecuteCommand: true
       TaskDefinition: !Ref TaskDefinition
       NetworkConfiguration:
         AwsvpcConfiguration:
