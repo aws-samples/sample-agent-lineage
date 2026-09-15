@@ -376,7 +376,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
 
   return (
     <aside className="detail-panel">
-      <div className="detail-header" style={{ borderColor: meta.color }}>
+      <div className="detail-header" style={{ borderTopColor: meta.color }}>
         <span className="detail-type" style={{ background: meta.color }}>
           {meta.icon} {meta.label}
         </span>

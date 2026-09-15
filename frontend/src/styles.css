@@ -49,23 +49,99 @@
   color-scheme: dark;
 }
 
+/* ================= CRAFT TOKENS =================
+   Shared vocabulary for motion, focus, depth and type so every component
+   answers the same way. Product (Operate) surface: motion conveys state only. */
+:root {
+  --accent: #2563eb;               /* one accent: primary actions, selection, focus */
+  --accent-hover: #1d4ed8;
+  --accent-soft: rgba(37, 99, 235, 0.12);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --font-mono: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  /* Depth: offset + soft blur, tinted toward the surface hue (never a flat halo). */
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-2: 0 4px 12px rgba(15, 23, 42, 0.10), 0 2px 4px rgba(15, 23, 42, 0.06);
+  --shadow-3: 0 12px 32px rgba(15, 23, 42, 0.16), 0 4px 8px rgba(15, 23, 42, 0.08);
+  --selection-bg: rgba(37, 99, 235, 0.22);
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+}
+[data-theme="dark"] {
+  --accent: #5b9bff;
+  --accent-hover: #7db0ff;
+  --accent-soft: rgba(91, 155, 255, 0.16);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.30), 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.40), 0 2px 4px rgba(0, 0, 0, 0.30);
+  --shadow-3: 0 12px 32px rgba(0, 0, 0, 0.55), 0 4px 8px rgba(0, 0, 0, 0.35);
+  --selection-bg: rgba(91, 155, 255, 0.30);
+  --scrollbar-thumb: #3b4a5a;
+  --scrollbar-thumb-hover: #4a5a6a;
+}
+
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); font-family: -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--text); }
-.app { display: flex; flex-direction: column; height: 100vh; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+.app { display: flex; flex-direction: column; height: 100dvh; }
+
+/* ---- Browser surfaces: the parts we did not draw still carry the design ---- */
+::selection { background: var(--selection-bg); color: var(--text); }
+* { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); border: 2px solid transparent; background-clip: padding-box; }
+input, textarea, select { caret-color: var(--accent); accent-color: var(--accent); font-family: inherit; }
+a { text-underline-offset: 0.15em; text-decoration-thickness: 1px; }
+h1, h2, h3, h4 { text-wrap: balance; }
+/* Data-dense UI: digits align in columns everywhere they appear. */
+table, .cost-big, .run-cost, .runs-cost, .count, .eval-score, .decision-meta, .edge-meta, code, .mono-value {
+  font-variant-numeric: tabular-nums;
+}
+code, pre, .mono-value, .facet-code, .run-error-msg { font-family: var(--font-mono); }
+
+/* ---- Focus: visible for keyboard users, invisible for pointer users ---- */
+:focus { outline: none; }
+:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 6px; }
+button:focus-visible, [role="tab"]:focus-visible, a:focus-visible, summary:focus-visible,
+input:focus-visible, select:focus-visible, textarea:focus-visible, .run-row:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+/* ---- Motion: one shared curve, state changes only ---- */
+button, [role="tab"], a, .chip, .tag, .pill, summary, .catalog-dropdown li button,
+.sidebar li button, .run-row, .runs-row, .cat-tab, .layer-toggle, input, select, textarea {
+  transition:
+    background-color var(--dur-base) var(--ease-out),
+    color var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    opacity var(--dur-base) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+button:not(:disabled):active, .run-row:active, .cat-tab:active { transform: translateY(1px); }
+button:disabled { cursor: not-allowed; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
 
 .topbar {
   display: flex; align-items: center; gap: 16px;
   padding: 10px 20px; background: var(--navbar-bg);
-  border-bottom: 3px solid transparent;
-  border-image: linear-gradient(90deg, #6366f1, #0891b2, var(--success)) 1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .brand { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
 .brand-mark {
   width: 38px; height: 38px; border-radius: 10px; flex: none;
   display: flex; align-items: center; justify-content: center;
   font-size: 20px; color: #fefefe;
-  background: linear-gradient(135deg, #6366f1, #0891b2);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+  background: var(--accent);
+  box-shadow: var(--shadow-1);
 }
 .brand-text { display: flex; flex-direction: column; min-width: 0; }
 .topbar h1 {
@@ -107,9 +183,10 @@ body { margin: 0; background: var(--bg); font-family: -apple-system, "Segoe UI",
 .catalog-dropdown {
   position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; right: 0;
   background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  box-shadow: var(--shadow-3);
   margin: 0; overflow: hidden;
 }
+.catalog-input-row:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .catalog-dropdown li button {
   display: block; width: 100%; text-align: left; border: none; background: none;
   padding: 8px 10px; border-radius: 8px; cursor: pointer;
@@ -191,9 +268,9 @@ body { margin: 0; background: var(--bg); font-family: -apple-system, "Segoe UI",
   padding: 6px 4px; border-radius: 6px; white-space: nowrap;
 }
 .tab:hover { color: var(--text); }
-.tab-active { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(15,23,42,0.08); }
+.tab-active { background: var(--surface); color: var(--text); box-shadow: var(--shadow-1); }
 .detail-header {
-  background: var(--surface); border: 1px solid var(--border); border-left: 4px solid;
+  background: var(--surface); border: 1px solid var(--border); border-top: 3px solid;
   border-radius: 10px; padding: 12px 14px;
 }
 .detail-header h2 { margin: 8px 0 4px; font-size: 17px; }
@@ -254,8 +331,9 @@ body { margin: 0; background: var(--bg); font-family: -apple-system, "Segoe UI",
 .focus-btn {
   margin-top: 8px; padding: 5px 10px; font-size: 12px; cursor: pointer;
   border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface-2);
+  color: var(--text); font-family: inherit;
 }
-.focus-btn:hover { background: var(--border); }
+.focus-btn:hover:not(:disabled) { background: var(--surface-3); border-color: var(--text-4); }
 
 .hint { font-size: 12px; color: var(--text-3); line-height: 1.5; }
 
@@ -393,10 +471,10 @@ body { margin: 0; background: var(--bg); font-family: -apple-system, "Segoe UI",
 .lineage-link { display: inline-block; margin-top: 8px; text-decoration: none; color: var(--text); }
 .lineage-open-btn {
   display: inline-block; margin: 8px 0 6px; padding: 6px 14px;
-  background: #6366f1; color: #fefefe !important; font-size: 12px; font-weight: 700;
+  background: var(--accent); color: #fefefe !important; font-size: 12px; font-weight: 700;
   border-radius: 6px; text-decoration: none;
 }
-.lineage-open-btn:hover { background: #4f46e5; }
+.lineage-open-btn:hover { background: var(--accent-hover); }
 
 /* ---- evaluations ---- */
 .eval-list li { padding: 6px 0 !important; }
@@ -441,9 +519,13 @@ body { margin: 0; background: var(--bg); font-family: -apple-system, "Segoe UI",
 }
 .modal {
   background: var(--surface); border-radius: 14px; width: min(980px, 94vw);
-  max-height: 86vh; display: flex; flex-direction: column;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3);
+  max-height: 86dvh; display: flex; flex-direction: column;
+  box-shadow: var(--shadow-3);
+  animation: modal-in var(--dur-base) var(--ease-out);
 }
+@keyframes modal-in { from { opacity: 0; transform: translateY(6px) scale(0.99); } to { opacity: 1; transform: none; } }
+.modal-backdrop { animation: fade-in var(--dur-base) var(--ease-out); }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 .modal-header {
   display: flex; align-items: flex-start; justify-content: space-between;
   padding: 16px 20px 8px;
@@ -537,10 +619,10 @@ body { margin: 0; background: var(--bg); font-family: -apple-system, "Segoe UI",
   font-size: 12px; background: #1c2733; color: #f4f4f5;
 }
 .topbar .aws-connect-btn {
-  background: linear-gradient(135deg, #6366f1, #0891b2); color: #fefefe;
+  background: var(--accent); color: #fefefe;
   border: none; font-weight: 700; padding: 7px 14px;
 }
-.topbar .aws-connect-btn:hover { opacity: 0.9; background: linear-gradient(135deg, #6366f1, #0891b2); }
+.topbar .aws-connect-btn:hover { background: var(--accent-hover); }
 
 /* ---- categorized search: horizontal tabs ---- */
 .cat-tabs {
@@ -598,9 +680,9 @@ input, select, textarea { background-color: var(--surface); color: var(--text); 
 }
 .run-error-msg { margin-top: 3px; font-family: var(--font-mono, monospace); font-size: 11px; word-break: break-word; }
 .step-error {
-  margin-top: 5px; padding: 6px 10px; border-left: 3px solid var(--danger);
+  margin-top: 5px; padding: 6px 10px; border: 1px solid var(--chip-red-border);
   background: var(--chip-red-bg); color: var(--chip-red-text);
-  border-radius: 0 6px 6px 0; font-size: 12px;
+  border-radius: 6px; font-size: 12px;
 }
 .step-error details { margin-top: 4px; }
 .step-error summary { cursor: pointer; font-size: 11px; }
@@ -645,7 +727,7 @@ input, select, textarea { background-color: var(--surface); color: var(--text); 
 .access-history { margin-top: 18px; text-align: left; }
 .access-history h3 { font-size: 13px; margin-bottom: 6px; }
 
-.access-pending { border-left: 3px solid #e8a13c; }
+.access-pending { border: 1px solid var(--chip-amber-text); }
 .access-date { float: right; font-size: 11px; color: var(--text-4); }
 .access-reason { font-size: 13px; color: var(--text-2); margin: 6px 0; font-style: italic; }
 .access-actions { display: flex; gap: 8px; }
