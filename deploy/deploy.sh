@@ -70,9 +70,28 @@ fi
 echo "==> CloudFront origin-facing prefix list: ${CF_PREFIX_LIST}"
 
 # Network mode: reuse an existing VPC (avoids the per-region VPC quota) or create one.
+# On an UPDATE, reuse the network the stack was originally deployed with.
+# `cloudformation deploy --parameter-overrides` resets any parameter it is
+# not given back to the template default (""), which would flip the
+# CreateNetwork condition and try to replace the live VPC. So if the caller
+# passed nothing, read the stored values from the stack instead.
+if [ -z "$EXISTING_VPC_ID" ]; then
+  STORED_VPC=$(aws cloudformation describe-stacks --stack-name "$STACK" --region "$REGION" \
+    --query "Stacks[0].Parameters[?ParameterKey=='ExistingVpcId'].ParameterValue" \
+    --output text 2>/dev/null || true)
+  STORED_SUBNETS=$(aws cloudformation describe-stacks --stack-name "$STACK" --region "$REGION" \
+    --query "Stacks[0].Parameters[?ParameterKey=='ExistingSubnetIds'].ParameterValue" \
+    --output text 2>/dev/null || true)
+  if [ -n "$STORED_VPC" ] && [ "$STORED_VPC" != "None" ]; then
+    EXISTING_VPC_ID="$STORED_VPC"
+    EXISTING_SUBNET_IDS="$STORED_SUBNETS"
+    echo "==> Network: reusing the stack's existing VPC ${EXISTING_VPC_ID} (from stack parameters)"
+  fi
+fi
+
 EXTRA_PARAMS=()
 if [ -n "$EXISTING_VPC_ID" ]; then
-  if [ -z "$EXISTING_SUBNET_IDS" ]; then
+  if [ -z "$EXISTING_SUBNET_IDS" ] || [ "$EXISTING_SUBNET_IDS" = "None" ]; then
     echo "ERROR: two public subnet IDs (comma-separated) are required with an existing VPC" >&2
     echo "Usage: ./deploy/deploy.sh $REGION $EXISTING_VPC_ID subnet-aaa,subnet-bbb" >&2
     exit 1
