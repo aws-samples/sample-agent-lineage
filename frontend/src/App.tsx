@@ -37,6 +37,7 @@ export default function App() {
   const [showRequestsModal, setShowRequestsModal] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [timeframe, setTimeframe] = useState<Timeframe>("30d");
+  const [layersOpen, setLayersOpen] = useState(true);
   const [theme, setTheme] = useState<"light" | "dark">(
     () => (document.documentElement.dataset.theme === "dark" ? "dark" : "light"),
   );
@@ -123,19 +124,18 @@ export default function App() {
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
               <path
                 d="M6 12 L12 6.5 M6 12 L12 17.5 M12 6.5 L18 12 M12 17.5 L18 12"
-                stroke="rgba(255,255,255,0.85)"
+                stroke="currentColor" strokeOpacity="0.85"
                 strokeWidth="1.6"
                 strokeLinecap="round"
               />
-              <circle cx="6" cy="12" r="2.6" fill="#fff" />
-              <circle cx="12" cy="6.5" r="2.2" fill="#fff" fillOpacity="0.9" />
-              <circle cx="12" cy="17.5" r="2.2" fill="#fff" fillOpacity="0.9" />
-              <circle cx="18" cy="12" r="2.6" fill="#fff" />
+              <circle cx="6" cy="12" r="2.6" fill="currentColor" />
+              <circle cx="12" cy="6.5" r="2.2" fill="currentColor" fillOpacity="0.9" />
+              <circle cx="12" cy="17.5" r="2.2" fill="currentColor" fillOpacity="0.9" />
+              <circle cx="18" cy="12" r="2.6" fill="currentColor" />
             </svg>
           </div>
           <div className="brand-text">
             <h1>Agent Lineage</h1>
-            <span className="subtitle">Provenance · Governance · Cost — for agentic AI</span>
           </div>
         </div>
         {namespaces.length > 0 && (
@@ -204,7 +204,9 @@ export default function App() {
         <AccessRequestsModal onClose={() => setShowRequestsModal(false)} />
       )}
 
-      <div className="searchbar">
+      {/* Command strip: the search is the primary action, scoped by the
+          focus/clear controls beside it. Sits directly on the map ground. */}
+      <div className="command-strip">
         <CatalogSearch
           selected={focusNodes}
           refreshSignal={refreshKey}
@@ -217,9 +219,9 @@ export default function App() {
         />
         {focusNodes.length > 0 && (
           <span className="search-summary">
-            {focusNodes.length} in focus
+            <span className="metric">{focusNodes.length}</span> in focus
             {selectedAgents.length > 0 && (
-              <> · agent LLM cost ${totalSelectedCost.toFixed(2)}</>
+              <> · LLM cost <span className="metric">${totalSelectedCost.toFixed(2)}</span></>
             )}
           </span>
         )}
@@ -235,13 +237,14 @@ export default function App() {
         )}
       </div>
 
-      <div className="body">
+      <div className="stage">
         {selected && graph && (
           <DetailPanel
             node={selected}
             graph={graph}
             since={since}
             onFocus={(id) => setFocusNodeId(id)}
+            onClose={() => setSelected(null)}
           />
         )}
 
@@ -279,28 +282,42 @@ export default function App() {
           )}
         </main>
 
-        <nav className="sidebar sidebar-right">
-          <h3>Layers</h3>
-          <ul className="legend">
-            {(Object.keys(NODE_TYPE_META) as NodeType[]).map((t) => (
-              <li key={t}>
-                <label className="layer-toggle">
-                  <input
-                    type="checkbox"
-                    checked={!hiddenTypes.has(t)}
-                    onChange={() => toggleType(t)}
-                  />
-                  <span className="swatch" style={{ background: NODE_TYPE_META[t].color }} />
-                  {NODE_TYPE_META[t].label}
-                </label>
-              </li>
-            ))}
-            <li><span className="edge-sample dashed" /> declared, never used</li>
-            <li><span className="edge-sample solid-green" /> declared ✓ observed</li>
-            <li><span className="edge-sample solid" /> observed, undeclared ⚠</li>
-            <li><span className="edge-sample solid-red" /> has Cedar denials</li>
-            <li>
-              <label className="layer-toggle">
+        {/* Layers palette floats over the map, top-right, like a GIS legend. */}
+        <nav className={`layers-palette ${layersOpen ? "" : "layers-collapsed"}`} aria-label="Map layers">
+          <button
+            className="layers-toggle"
+            aria-expanded={layersOpen}
+            onClick={() => setLayersOpen((v) => !v)}
+          >
+            <span>Layers</span>
+            <span className="layers-caret" aria-hidden>{layersOpen ? "−" : "+"}</span>
+          </button>
+          {layersOpen && (
+            <>
+              <ul className="legend">
+                {(Object.keys(NODE_TYPE_META) as NodeType[]).map((t) => (
+                  <li key={t}>
+                    <label className="layer-toggle">
+                      <input
+                        type="checkbox"
+                        checked={!hiddenTypes.has(t)}
+                        onChange={() => toggleType(t)}
+                      />
+                      <span className="swatch" style={{ background: NODE_TYPE_META[t].color }} />
+                      {NODE_TYPE_META[t].label}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+              <div className="legend-divider" />
+              <ul className="legend legend-edges">
+                <li><span className="edge-sample solid-amber" /> observed, undeclared</li>
+                <li><span className="edge-sample solid-red" /> has Cedar denials</li>
+                <li><span className="edge-sample solid-green" /> declared &amp; observed</li>
+                <li><span className="edge-sample dashed" /> declared, never used</li>
+              </ul>
+              <div className="legend-divider" />
+              <label className="layer-toggle legend-option">
                 <input
                   type="checkbox"
                   checked={hideIsolated}
@@ -308,14 +325,8 @@ export default function App() {
                 />
                 Hide isolated nodes
               </label>
-            </li>
-          </ul>
-          <h3>How to read</h3>
-          <p className="hint">
-            Search the AgentCore catalog above and pick one or more agents to scope the
-            lineage. Click any node for engine, hosting, Cedar policies, A2A auth,
-            evaluations and cost details.
-          </p>
+            </>
+          )}
         </nav>
       </div>
     </div>

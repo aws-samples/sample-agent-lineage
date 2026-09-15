@@ -37,6 +37,7 @@ interface Props {
   graph: Graph;
   since?: string;
   onFocus: (nodeId: string) => void;
+  onClose?: () => void;
 }
 
 type TabId = "overview" | "access" | "governance" | "usage";
@@ -107,7 +108,7 @@ const ORIGIN_META: Record<string, { label: string; title: string }> = {
     title: "Access is declared in the registry but has never been observed at runtime. Candidate for least-privilege tightening.",
   },
   observed: {
-    label: "⚠ undeclared",
+    label: "undeclared",
     title: "Access was observed at runtime but is not declared in the registry. Possible drift or policy violation.",
   },
   both: {
@@ -120,6 +121,7 @@ function OriginChip({ origin }: { origin: string }) {
   const meta = ORIGIN_META[origin] ?? { label: origin, title: origin };
   return (
     <span className={`origin origin-${origin}`} title={meta.title}>
+      {origin === "observed" && <Icon name="alert" size={10} />}
       {meta.label}
     </span>
   );
@@ -143,7 +145,7 @@ function AccessSummary({ edges }: { edges: GraphEdge[] }) {
       )}
       {observed > 0 && (
         <span className="origin origin-observed" title={ORIGIN_META.observed.title}>
-          ⚠ {observed} undeclared
+          <Icon name="alert" size={11} /> {observed} undeclared
         </span>
       )}
     </div>
@@ -227,7 +229,7 @@ function EdgeList({
   );
 }
 
-export function DetailPanel({ node, graph, since, onFocus }: Props) {
+export function DetailPanel({ node, graph, since, onFocus, onClose }: Props) {
   const meta = NODE_TYPE_META[node.node_type];
   const [runs, setRuns] = useState<Run[]>([]);
   const [runsTotal, setRunsTotal] = useState(0);
@@ -376,11 +378,18 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
   ];
 
   return (
-    <aside className="detail-panel">
+    <aside className="detail-panel" aria-label={`${meta.label} details`}>
       <div className="detail-header" style={{ borderTopColor: meta.color }}>
-        <span className="detail-type" style={{ background: meta.color }}>
-          <Icon name={meta.icon} size={11} /> {meta.label}
-        </span>
+        <div className="detail-header-row">
+          <span className="detail-type" style={{ color: meta.color }}>
+            <Icon name={meta.icon} size={12} /> {meta.label}
+          </span>
+          {onClose && (
+            <button className="panel-close" aria-label="Close details" onClick={onClose}>
+              <Icon name="x" size={14} />
+            </button>
+          )}
+        </div>
         <h2>{node.name}</h2>
         {node.description && <p className="detail-desc">{node.description}</p>}
         <button className="focus-btn" onClick={() => onFocus(node.id)}>

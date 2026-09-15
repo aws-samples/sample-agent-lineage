@@ -15,9 +15,12 @@ import { EntityNode } from "./EntityNode";
 const nodeTypes = { entity: EntityNode };
 
 const EDGE_COLOR: Record<string, string> = {
-  declared: "#94a3b8",
-  observed: "#2563eb",
-  both: "#059669",
+  // Control-room signal vocabulary: amber is the one committed colour and it
+  // means "needs attention" — undeclared access is the product's alarm.
+  // Healthy (both) recedes to a quiet green; declared-only is a grey trace.
+  declared: "#6b7788",
+  observed: "#f5a524",
+  both: "#2fbf8f",
 };
 
 interface Props {
@@ -36,7 +39,7 @@ export function LineageGraph({ graph, onSelect }: Props) {
     const flowEdges: Edge[] = graph.edges.map((e) => {
       // Edges with Cedar denials get flagged red regardless of origin.
       const denyCount = Number(e.facets.cedar_deny_count ?? 0);
-      const color = denyCount > 0 ? "#dc2626" : (EDGE_COLOR[e.origin] ?? "#94a3b8");
+      const color = denyCount > 0 ? "#f0506e" : (EDGE_COLOR[e.origin] ?? "#6b7788");
       let label = e.call_count > 0 ? `${e.edge_type} (${e.call_count})` : e.edge_type;
       if (denyCount > 0) label += ` ⚠ ${denyCount} denied`;
       return {
@@ -47,9 +50,13 @@ export function LineageGraph({ graph, onSelect }: Props) {
         animated: e.origin !== "declared",
         style: {
           stroke: color,
+          strokeWidth: e.origin === "observed" || denyCount > 0 ? 2 : 1.5,
           strokeDasharray: e.origin === "declared" ? "6 4" : undefined,
         },
-        labelStyle: { fontSize: 10, fill: denyCount > 0 ? "#dc2626" : "#475569" },
+        labelStyle: {
+          fontSize: 10,
+          fill: denyCount > 0 ? "#f0506e" : e.origin === "observed" ? "#f5a524" : undefined,
+        },
         markerEnd: { type: MarkerType.ArrowClosed, color },
       };
     });
@@ -68,8 +75,8 @@ export function LineageGraph({ graph, onSelect }: Props) {
       onPaneClick={() => onSelect(null)}
       proOptions={{ hideAttribution: true }}
     >
-      <Background gap={20} />
-      <Controls />
+      <Background gap={24} size={1} className="graph-bg" />
+      <Controls position="bottom-right" showInteractive={false} />
     </ReactFlow>
   );
 }
