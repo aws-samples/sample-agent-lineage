@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { decideAccessRequest, fetchAccessRequests } from "../api";
 import type { AccessRequest } from "../types";
+import { Icon } from "./Icon";
 
 interface Props {
   onClose: () => void;
@@ -35,11 +36,12 @@ export function AccessRequestsModal({ onClose }: Props) {
 
   const pending = requests.filter((r) => r.status === "pending");
   const decided = requests.filter((r) => r.status !== "pending");
+  const when = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString() : "—");
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
-        className="modal aws-modal"
+        className="modal requests-modal"
         role="dialog"
         aria-label="Access requests"
         onClick={(e) => e.stopPropagation()}
@@ -56,68 +58,94 @@ export function AccessRequestsModal({ onClose }: Props) {
           <button className="modal-close" aria-label="Close" onClick={onClose}>×</button>
         </div>
 
-        <div className="modal-body">
-        {error && <div className="error aws-result">{error}</div>}
+        <div className="modal-body requests-body">
+          {error && <div className="error requests-error">{error}</div>}
 
-        <h3>Pending ({pending.length})</h3>
-        {pending.length === 0 && <p className="hint">Nothing waiting on you.</p>}
-        {pending.map((r) => (
-          <div key={r.id} className="aws-result access-pending">
-            <div className="aws-result-head">
-              <b>{r.requester_email || "unknown user"}</b> requests{" "}
-              <b>{r.account_name}</b> (<code>{r.account_id}</code>)
-              <span className="access-date">
-                {r.created_at ? new Date(r.created_at).toLocaleString() : ""}
+          <section className="requests-section">
+            <h3 className="requests-title">
+              Pending
+              <span className={`requests-count${pending.length ? " requests-count-live" : ""}`}>
+                {pending.length}
               </span>
-            </div>
-            <p className="access-reason">“{r.reason}”</p>
-            <div className="access-actions">
-              <button
-                className="focus-btn approve-btn"
-                disabled={busyId === r.id}
-                onClick={() => decide(r.id, "approve")}
-              >
-                {busyId === r.id ? "…" : "✓ Approve"}
-              </button>
-              <button
-                className="focus-btn reject-btn"
-                disabled={busyId === r.id}
-                onClick={() => decide(r.id, "reject")}
-              >
-                ✗ Reject
-              </button>
-            </div>
-          </div>
-        ))}
-
-        {decided.length > 0 && (
-          <>
-            <h3>History</h3>
-            <table className="cost-table">
-              <thead>
-                <tr>
-                  <th>Requester</th><th>Account</th><th>Status</th>
-                  <th>Decided by</th><th>When</th>
-                </tr>
-              </thead>
-              <tbody>
-                {decided.map((r) => (
-                  <tr key={r.id}>
-                    <td>{r.requester_email}</td>
-                    <td>{r.account_name} <code>{r.account_id}</code></td>
-                    <td>
-                      <span className={r.status === "approved" ? "allow-chip" : "deny-chip"}>
-                        {r.status}
-                      </span>
-                    </td>
-                    <td>{r.decided_by || "—"}</td>
-                    <td>{r.decided_at ? new Date(r.decided_at).toLocaleString() : "—"}</td>
-                  </tr>
+            </h3>
+            {pending.length === 0 ? (
+              <p className="requests-empty">Nothing waiting on you.</p>
+            ) : (
+              <ul className="requests-list">
+                {pending.map((r) => (
+                  <li key={r.id} className="request-card">
+                    <div className="request-main">
+                      <div className="request-who">
+                        <span className="request-email">{r.requester_email || "unknown user"}</span>
+                        <span className="request-when">{when(r.created_at)}</span>
+                      </div>
+                      <div className="request-target">
+                        <span className="request-target-label">requests</span>
+                        <span className="request-account">{r.account_name}</span>
+                        <code className="request-account-id">{r.account_id}</code>
+                      </div>
+                      {r.reason && <p className="request-reason">“{r.reason}”</p>}
+                    </div>
+                    <div className="request-actions">
+                      <button
+                        className="request-btn request-approve"
+                        disabled={busyId === r.id}
+                        onClick={() => decide(r.id, "approve")}
+                      >
+                        <Icon name="check" size={13} /> {busyId === r.id ? "Working…" : "Approve"}
+                      </button>
+                      <button
+                        className="request-btn request-reject"
+                        disabled={busyId === r.id}
+                        onClick={() => decide(r.id, "reject")}
+                      >
+                        <Icon name="x" size={13} /> Reject
+                      </button>
+                    </div>
+                  </li>
                 ))}
-              </tbody>
-            </table>
-          </>
-        )}
+              </ul>
+            )}
+          </section>
+
+          {decided.length > 0 && (
+            <section className="requests-section">
+              <h3 className="requests-title">
+                History <span className="requests-count">{decided.length}</span>
+              </h3>
+              <div className="requests-table-wrap">
+                <table className="requests-table">
+                  <thead>
+                    <tr>
+                      <th>Requester</th>
+                      <th>Account</th>
+                      <th>Status</th>
+                      <th>Decided by</th>
+                      <th>When</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {decided.map((r) => (
+                      <tr key={r.id}>
+                        <td className="requests-td-strong">{r.requester_email}</td>
+                        <td>
+                          <span className="request-account">{r.account_name}</span>
+                          <code className="request-account-id">{r.account_id}</code>
+                        </td>
+                        <td>
+                          <span className={r.status === "approved" ? "allow-chip" : "deny-chip"}>
+                            {r.status}
+                          </span>
+                        </td>
+                        <td>{r.decided_by || "—"}</td>
+                        <td className="requests-td-when">{when(r.decided_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </div>

@@ -827,12 +827,76 @@ button:disabled { cursor: not-allowed; }
 .access-history { margin-top: 18px; text-align: left; }
 .access-history h3 { font-size: 13px; margin-bottom: 6px; }
 
-.access-pending { border: 1px solid var(--chip-amber-text); }
-.access-date { float: right; font-size: 11px; color: var(--text-4); }
-.access-reason { font-size: 13px; color: var(--text-2); margin: 6px 0; font-style: italic; }
-.access-actions { display: flex; gap: 8px; }
-.approve-btn { background: var(--chip-green-bg); color: var(--chip-green-text); }
-.reject-btn { background: var(--chip-red-bg); color: var(--chip-red-text); }
+/* ---- access requests (admin approver) ---- */
+.requests-modal { width: min(880px, 94vw); }
+.requests-body { display: flex; flex-direction: column; gap: 22px; padding: 4px 20px 20px; }
+.requests-error { position: static; transform: none; margin: 0; }
+.requests-section { min-width: 0; }
+.requests-title {
+  display: flex; align-items: center; gap: 8px; margin: 0 0 10px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3);
+}
+.requests-count {
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; letter-spacing: 0;
+  padding: 1px 7px; border-radius: 999px; background: var(--surface-3); color: var(--text-3);
+}
+.requests-count-live { background: var(--signal-soft); color: var(--signal-text); }
+.requests-empty {
+  margin: 0; padding: 18px; text-align: center; font-size: 13px; color: var(--text-4);
+  border: 1px dashed var(--hairline-strong); border-radius: 10px;
+}
+
+/* pending: one card per request, actions pinned right */
+.requests-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.request-card {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: start;
+  padding: 14px 16px; border-radius: 10px;
+  background: var(--surface-2); border: 1px solid var(--hairline-strong);
+  border-left: 1px solid var(--signal); box-shadow: inset 2px 0 0 var(--signal);
+}
+.request-main { min-width: 0; }
+.request-who { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.request-email { font-weight: 600; font-size: 13.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.request-when { font-size: 11px; color: var(--text-4); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.request-target { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.request-target-label { font-size: 12px; color: var(--text-3); }
+.request-account { font-size: 13px; font-weight: 600; color: var(--text); }
+.request-account-id {
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-2);
+  background: var(--surface-3); border: 1px solid var(--hairline); padding: 1px 6px; border-radius: 4px;
+}
+.request-reason { margin: 8px 0 0; font-size: 13px; line-height: 1.45; color: var(--text-2); font-style: italic; }
+.request-actions { display: flex; flex-direction: column; gap: 6px; }
+.request-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-width: 108px; padding: 7px 12px; border-radius: 7px; font-size: 12.5px; font-weight: 600;
+  border: 1px solid transparent; cursor: pointer;
+}
+.request-btn .icon { margin: 0; }
+.request-btn:disabled { opacity: 0.55; }
+.request-approve { background: var(--ok); color: #06261b; }
+.request-approve:hover:not(:disabled) { filter: brightness(1.08); }
+.request-reject { background: transparent; color: var(--bad); border-color: var(--chip-red-border); }
+.request-reject:hover:not(:disabled) { background: var(--bad-soft); }
+
+/* history: a real table with room to breathe */
+.requests-table-wrap { border: 1px solid var(--hairline-strong); border-radius: 10px; overflow: hidden; }
+.requests-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.requests-table th {
+  text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-4); background: var(--surface-2); padding: 9px 12px; border-bottom: 1px solid var(--hairline-strong);
+  white-space: nowrap;
+}
+.requests-table td { padding: 10px 12px; border-bottom: 1px solid var(--hairline); color: var(--text-2); vertical-align: middle; }
+.requests-table tr:last-child td { border-bottom: none; }
+.requests-table td .request-account { display: block; margin-bottom: 3px; }
+.requests-td-strong { color: var(--text); font-weight: 600; }
+.requests-td-when { white-space: nowrap; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 640px) {
+  .request-card { grid-template-columns: 1fr; }
+  .request-actions { flex-direction: row; }
+}
 
 /* =====================================================================
    LANDING (pre-auth, Persuade surface)
