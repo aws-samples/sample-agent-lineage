@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Icon } from "./Icon";
 import { LogoLockup } from "./Logo";
+import { REPO_URL } from "./Markdown";
+import { Showcase } from "./Showcase";
 
 interface Props {
   /** "signin": auth enabled, the action starts the Cognito hosted-UI flow.
@@ -24,9 +26,13 @@ export function Landing({ mode, onEnter }: Props) {
     <div className="landing">
       <header className="landing-top">
         <LogoLockup size={24} />
-        <button className="landing-signin landing-signin-quiet" onClick={go} disabled={busy}>
-          {mode === "signin" ? "Sign in" : "Enter"}
-        </button>
+        <nav className="landing-nav" aria-label="Site">
+          <a className="landing-navlink" href="#/docs">Docs</a>
+          <a className="landing-navlink" href={REPO_URL} target="_blank" rel="noreferrer">GitHub ↗</a>
+          <button className="landing-signin landing-signin-quiet" onClick={go} disabled={busy}>
+            {mode === "signin" ? "Sign in" : "Enter"}
+          </button>
+        </nav>
       </header>
 
       <main className="landing-hero">
@@ -60,6 +66,8 @@ export function Landing({ mode, onEnter }: Props) {
         </div>
       </main>
 
+      <Showcase />
+
       <section className="landing-beats" aria-label="What Agent Lineage does">
         <Beat
           icon="agent"
@@ -80,7 +88,10 @@ export function Landing({ mode, onEnter }: Props) {
       </section>
 
       <footer className="landing-foot">
-        <span>Declared vs observed · OpenLineage for agents</span>
+        <span>
+          Declared vs observed · OpenLineage for agents ·{" "}
+          <a className="landing-footlink" href="#/docs">Documentation</a>
+        </span>
         <span className="landing-foot-right">
           <span className="landing-legend"><i className="lg-dash" /> declared</span>
           <span className="landing-legend"><i className="lg-ok" /> observed</span>
