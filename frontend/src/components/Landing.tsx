@@ -30,7 +30,7 @@ export function Landing({ mode, onEnter }: Props) {
           <a className="landing-navlink" href="#/docs">Docs</a>
           <a className="landing-navlink" href={REPO_URL} target="_blank" rel="noreferrer">GitHub ↗</a>
           <button className="landing-signin landing-signin-quiet" onClick={go} disabled={busy}>
-            {mode === "signin" ? "Sign in" : "Enter"}
+            Login
           </button>
         </nav>
       </header>
@@ -49,7 +49,7 @@ export function Landing({ mode, onEnter }: Props) {
           <div className="landing-actions">
             <button className="landing-signin" onClick={go} disabled={busy} autoFocus>
               <Icon name="key" size={15} />
-              {mode === "signin" ? "Sign in to your console" : "Enter the console"}
+              {mode === "signin" ? "Login to your console" : "Login to the console"}
             </button>
             <span className="landing-auth-note">
               {mode === "signin"

@@ -1128,7 +1128,14 @@ button:disabled { cursor: not-allowed; }
 .md blockquote { margin: 0 0 14px; padding: 4px 16px; border-left: 2px solid var(--hairline-strong); color: var(--text-3); font-style: italic; }
 .md hr { border: none; border-top: 1px solid var(--hairline); margin: 28px 0; }
 .md figure { margin: 18px 0 22px; max-width: none; }
-.md img { max-width: 100%; border-radius: 10px; border: 1px solid var(--hairline-strong); display: block; }
+/* Diagrams are authored for a light canvas. The draw.io SVG export uses CSS
+   light-dark() colours, so under the page's dark colour-scheme it would
+   render its dark variant; pin the image to light so it shows as designed. */
+.md img {
+  max-width: 100%; display: block; border-radius: 10px;
+  border: 1px solid var(--hairline-strong); background: #ffffff; padding: 12px;
+  color-scheme: light;
+}
 .md-table-wrap { max-width: none; overflow-x: auto; margin: 0 0 18px; border: 1px solid var(--hairline-strong); border-radius: 10px; }
 .md table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .md th {
