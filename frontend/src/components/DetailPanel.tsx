@@ -379,6 +379,10 @@ export function DetailPanel({ node, graph, since, onFocus, onClose }: Props) {
 
   return (
     <aside className="detail-panel" aria-label={`${meta.label} details`}>
+      {/* Header + tabs pin together as ONE sticky unit, so the tab bar always
+          sits directly beneath the header regardless of its height and no
+          content can scroll up between them. */}
+      <div className="detail-pinned">
       <div className="detail-header" style={{ borderTopColor: meta.color }}>
         <div className="detail-header-row">
           <span className="detail-type" style={{ color: meta.color }}>
@@ -410,6 +414,7 @@ export function DetailPanel({ node, graph, since, onFocus, onClose }: Props) {
           </button>
         ))}
       </div>
+      </div>{/* /detail-pinned */}
 
       {tab === "usage" && cost && cost.by_llm.length > 0 && (
         <section>

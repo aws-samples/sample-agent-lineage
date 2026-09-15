@@ -382,13 +382,19 @@ button:disabled { cursor: not-allowed; }
   overflow-y: auto; padding: 14px; font-size: 13px;
   animation: panel-in var(--dur-base) var(--ease-out);
 }
-/* Identity and close control stay pinned while the console body scrolls;
-   the tab bar pins beneath them so the current view is always legible. */
-.detail-panel .detail-header {
-  position: sticky; top: -14px; z-index: 3; margin: -14px -14px 0; padding: 14px 14px 12px;
-  border-radius: 12px 12px 0 0; border-left: none; border-right: none; border-bottom: none;
+/* Identity, close control and the tab bar pin together as one sticky unit
+   while the console body scrolls. One container, one `top`, so the tabs sit
+   directly under the header whatever its height (a hard-coded tab offset
+   let content scroll up between the two). The unit paints an opaque surface
+   so nothing bleeds through from beneath. */
+.detail-pinned {
+  position: sticky; top: -14px; z-index: 3;
+  margin: -14px -14px 0; padding: 14px 14px 10px;
+  background: var(--surface); border-radius: 12px 12px 0 0;
+  border-bottom: 1px solid var(--hairline);
 }
-.detail-panel .tab-bar { position: sticky; top: 92px; z-index: 3; }
+.detail-pinned .detail-header { border-left: none; border-right: none; border-bottom: none; border-radius: 10px 10px 0 0; }
+.detail-pinned .tab-bar { margin-top: 10px; }
 @keyframes panel-in { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
 .detail-header-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .panel-close {
