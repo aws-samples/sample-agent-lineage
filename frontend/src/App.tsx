@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchGraph, fetchMe, fetchNamespaces } from "./api";
+import { signOut } from "./auth";
 import { AccessRequestForm } from "./components/AccessRequestForm";
 import { AccessRequestsModal } from "./components/AccessRequestsModal";
 import { AwsConnectModal } from "./components/AwsConnectModal";
@@ -159,6 +160,17 @@ export default function App() {
           >
             <Icon name="key" size={13} />Request access
           </button>
+        )}
+        {me?.auth_enabled && (
+          <div className="session" title={`Signed in as ${me.email} (${me.role})`}>
+            <span className="session-who">
+              <span className="session-email">{me.email}</span>
+              <span className={`session-role session-role-${me.role}`}>{me.role}</span>
+            </span>
+            <button className="session-out" onClick={() => signOut()} aria-label="Sign out">
+              <Icon name="logout" size={14} /> Sign out
+            </button>
+          </div>
         )}
       </header>
 

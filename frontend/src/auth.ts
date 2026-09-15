@@ -24,6 +24,27 @@ export function clearToken(): void {
   localStorage.removeItem(EXPIRY_KEY);
 }
 
+/** End the session. Clears the local token AND the Cognito hosted-UI
+ *  session cookie via the /logout endpoint — without the second step the
+ *  hosted UI would silently log the user straight back in. Cognito then
+ *  redirects to logout_uri (registered in the client's LogoutURLs), which is
+ *  the landing page. */
+export async function signOut(): Promise<void> {
+  clearToken();
+  let cfg: AuthConfig | null = null;
+  try {
+    cfg = await (await fetch("/api/v1/auth/config")).json();
+  } catch {
+    /* fall through to a plain reload */
+  }
+  if (cfg?.enabled) {
+    const params = new URLSearchParams({ client_id: cfg.client_id, logout_uri: redirectUri() });
+    window.location.assign(`https://${cfg.domain}/logout?${params}`);
+    return;
+  }
+  window.location.assign(redirectUri());
+}
+
 function base64url(bytes: ArrayBuffer): string {
   return btoa(String.fromCharCode(...new Uint8Array(bytes)))
     .replace(/\+/g, "-")
