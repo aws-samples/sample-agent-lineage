@@ -7,6 +7,7 @@ import { CatalogSearch } from "./components/CatalogSearch";
 import { DetailPanel } from "./components/DetailPanel";
 import { Icon } from "./components/Icon";
 import { LineageGraph } from "./components/LineageGraph";
+import { LogoLockup } from "./components/Logo";
 import {
   NODE_TYPE_META,
   type CatalogEntry,
@@ -119,24 +120,7 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <div className="brand-mark" aria-hidden>
-            {/* Mini lineage graph: source -> branches -> target */}
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-              <path
-                d="M6 12 L12 6.5 M6 12 L12 17.5 M12 6.5 L18 12 M12 17.5 L18 12"
-                stroke="currentColor" strokeOpacity="0.85"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-              />
-              <circle cx="6" cy="12" r="2.6" fill="currentColor" />
-              <circle cx="12" cy="6.5" r="2.2" fill="currentColor" fillOpacity="0.9" />
-              <circle cx="12" cy="17.5" r="2.2" fill="currentColor" fillOpacity="0.9" />
-              <circle cx="18" cy="12" r="2.6" fill="currentColor" />
-            </svg>
-          </div>
-          <div className="brand-text">
-            <h1>Agent Lineage</h1>
-          </div>
+          <h1 className="brand-h1"><LogoLockup size={22} /></h1>
         </div>
         {namespaces.length > 0 && (
           <label className="window-select ns-select" title="Scope the lineage to one account/region">

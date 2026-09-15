@@ -172,22 +172,24 @@ button:disabled { cursor: not-allowed; }
   padding: 0 16px; background: var(--bg);
   border-bottom: 1px solid var(--hairline);
   flex: none; z-index: 5;
+  /* Never let controls overlap the brand: on a genuinely narrow strip the
+     row scrolls horizontally instead. */
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
 }
-.brand { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
-.brand-mark {
-  width: 30px; height: 30px; border-radius: 8px; flex: none;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--text); background: var(--surface-2); border: 1px solid var(--hairline-strong);
+.topbar::-webkit-scrollbar { display: none; }
+.topbar > * { flex: none; }
+/* The brand is the only element that grows; it never shrinks below its content. */
+.brand { display: flex; align-items: center; flex: 1 0 auto; margin-right: 12px; }
+.brand-h1 { margin: 0; font-size: inherit; font-weight: inherit; line-height: 1; white-space: nowrap; }
+
+/* ---- brand lockup: mark + wordmark ---- */
+.logo-lockup { display: inline-flex; align-items: center; gap: 9px; color: var(--text); }
+.logo-lockup svg { flex: none; display: block; }
+.logo-wordmark {
+  font-size: calc(var(--logo-size, 22px) * 0.68); font-weight: 600;
+  letter-spacing: -0.02em; line-height: 1; white-space: nowrap; color: var(--text);
 }
-.brand-mark svg { width: 18px; height: 18px; }
-.brand-text { display: flex; flex-direction: column; min-width: 0; }
-.topbar h1 {
-  font-size: 14px; margin: 0; color: var(--text); font-weight: 600;
-  letter-spacing: -0.005em; line-height: 1.2; white-space: nowrap;
-}
-.brand { flex: 1 1 auto; min-width: 0; margin-right: 12px; }
-.brand-text { flex: none; }
-.subtitle { display: none; }
+.logo-wordmark-accent { color: var(--text-3); font-weight: 500; margin-left: 0.18em; }
 
 .window-select {
   display: flex; align-items: center; gap: 6px;
