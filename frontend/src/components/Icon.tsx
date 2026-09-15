@@ -10,7 +10,7 @@ export type IconName =
   // ui
   | "cloud" | "key" | "sun" | "moon" | "link" | "lock" | "cost" | "signal"
   | "flask" | "card" | "scroll" | "tag" | "users" | "check" | "x" | "alert"
-  | "stop" | "square";
+  | "stop" | "square" | "arrow-left";
 
 const PATHS: Record<IconName, string> = {
   // --- node types ---
@@ -44,6 +44,7 @@ const PATHS: Record<IconName, string> = {
   alert: "M12 3 2 20h20L12 3Zm0 7v4m0 3v.01",
   stop: "M6 6h12v12H6V6Z",
   square: "M5 5h14v14H5V5Z",
+  "arrow-left": "M19 12H5m6-6-6 6 6 6",
 };
 
 interface Props {

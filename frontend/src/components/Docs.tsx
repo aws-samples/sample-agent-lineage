@@ -27,7 +27,7 @@ export function Docs({ onBack }: Props) {
     <div className="docs">
       <header className="docs-top">
         <button className="docs-back" onClick={onBack}>
-          <Icon name="x" size={14} /> Back
+          <Icon name="arrow-left" size={14} /> Back
         </button>
         <LogoLockup size={22} />
         <a className="docs-repo" href={REPO_URL} target="_blank" rel="noreferrer">
