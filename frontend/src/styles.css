@@ -1072,6 +1072,18 @@ button:disabled { cursor: not-allowed; }
 .hn-box { fill: var(--surface-2); stroke-width: 1.4; }
 .hn-cap { opacity: 0.95; }
 .hn-label { font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; fill: var(--text); }
+.hn-kind { font-size: 6.5px; font-weight: 700; letter-spacing: 0.08em; fill: #fff; opacity: 0.95; }
+
+/* caption: tells a first-time reader this is a worked example, and what it shows */
+.landing-caption {
+  margin: 18px 4px 0; font-size: 12.5px; line-height: 1.5; color: var(--text-3);
+  display: flex; gap: 10px; align-items: baseline;
+}
+.landing-caption-tag {
+  flex: none; font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-4); border: 1px solid var(--hairline-strong);
+  padding: 2px 7px; border-radius: 4px;
+}
 
 /* edges draw in, then packets flow */
 .he-line {

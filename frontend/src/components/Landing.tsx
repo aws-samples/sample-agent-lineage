@@ -61,10 +61,15 @@ export function Landing({ mode, onEnter }: Props) {
           </div>
         </div>
 
-        <div className="landing-stage" aria-hidden>
-          <div className="landing-tilt">
+        <div className="landing-stage">
+          <div className="landing-tilt" aria-hidden>
             <HeroGraph />
           </div>
+          <p className="landing-caption">
+            <span className="landing-caption-tag">Example estate</span>
+            A support team's agent reaches a payments database through a gateway —
+            the amber edge is access nobody declared.
+          </p>
         </div>
       </main>
 
@@ -127,13 +132,16 @@ const NODES: N[] = [
   { id: "a", x: 220, y: 210, label: "support-orchestrator", kind: "agent" },
   { id: "b", x: 400, y: 110, label: "billing-agent", kind: "agent" },
   { id: "gw", x: 400, y: 310, label: "enterprise-api-gw", kind: "gateway" },
-  { id: "llm", x: 590, y: 60, label: "claude-sonnet-4-5", kind: "llm" },
+  { id: "llm", x: 590, y: 60, label: "model-sonnet", kind: "llm" },
   { id: "t1", x: 590, y: 200, label: "refund-processor", kind: "tool" },
   { id: "t2", x: 590, y: 300, label: "crm-lookup", kind: "tool" },
   { id: "r", x: 590, y: 390, label: "payments-db", kind: "resource" },
 ];
 const COLOR: Record<N["kind"], string> = {
   group: "#8b5cf6", agent: "#2563eb", gateway: "#0891b2", tool: "#059669", llm: "#d97706", resource: "#dc2626",
+};
+const KIND_LABEL: Record<N["kind"], string> = {
+  group: "USER GROUP", agent: "AGENT", gateway: "GATEWAY", tool: "TOOL", llm: "LLM", resource: "RESOURCE",
 };
 type E = { from: string; to: string; origin: "declared" | "both" | "observed"; delay: number };
 const EDGES: E[] = [
@@ -145,7 +153,7 @@ const EDGES: E[] = [
   { from: "gw", to: "t2", origin: "both", delay: 1.2 },
   { from: "gw", to: "r", origin: "observed", delay: 2.2 }, // the alarm
 ];
-const NW = 132, NH = 34;
+const NW = 132, NH = 40;
 const byId = Object.fromEntries(NODES.map((n) => [n.id, n]));
 
 function path(e: E): string {
@@ -175,7 +183,7 @@ function HeroGraph() {
               </circle>
             )}
             {e.origin === "observed" && (
-              <text className="he-tag" x={(byId[e.from].x + byId[e.to].x) / 2 + 20} y={(byId[e.from].y + byId[e.to].y) / 2 + 22}>
+              <text className="he-tag" x={byId[e.to].x - NW / 2} y={byId[e.to].y - NH / 2 - 7}>
                 undeclared
               </text>
             )}
@@ -185,9 +193,11 @@ function HeroGraph() {
       {NODES.map((n, i) => (
         <g key={n.id} className="hn" style={{ ["--d" as string]: `${0.05 + i * 0.08}s` }}>
           <rect x={n.x - NW / 2} y={n.y - NH / 2} width={NW} height={NH} rx="7" className="hn-box" style={{ stroke: COLOR[n.kind] }} />
-          <rect x={n.x - NW / 2} y={n.y - NH / 2} width={NW} height={9} rx="7" className="hn-cap" style={{ fill: COLOR[n.kind] }} />
-          <rect x={n.x - NW / 2} y={n.y - NH / 2 + 5} width={NW} height={4} className="hn-cap" style={{ fill: COLOR[n.kind] }} />
-          <text x={n.x} y={n.y + 9} className="hn-label" textAnchor="middle">{n.label}</text>
+          <rect x={n.x - NW / 2} y={n.y - NH / 2} width={NW} height={12} rx="7" className="hn-cap" style={{ fill: COLOR[n.kind] }} />
+          <rect x={n.x - NW / 2} y={n.y - NH / 2 + 6} width={NW} height={6} className="hn-cap" style={{ fill: COLOR[n.kind] }} />
+          {/* node TYPE on the cap (the generic vocabulary), instance name below (the story) */}
+          <text x={n.x - NW / 2 + 7} y={n.y - NH / 2 + 9} className="hn-kind">{KIND_LABEL[n.kind]}</text>
+          <text x={n.x} y={n.y + 11} className="hn-label" textAnchor="middle">{n.label}</text>
         </g>
       ))}
     </svg>

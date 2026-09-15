@@ -129,7 +129,7 @@ function GraphPanel() {
       <Node x={205} y={150} label="support-orch" color={C.agent} />
       <Node x={345} y={70} label="billing-agent" color={C.agent} />
       <Node x={345} y={230} label="enterprise-gw" color={C.gateway} />
-      <Node x={485} y={40} label="claude-sonnet" color={C.llm} />
+      <Node x={485} y={40} label="model-sonnet" color={C.llm} />
       <Node x={485} y={120} label="refund-proc" color={C.tool} />
       <Node x={485} y={200} label="crm-lookup" color={C.tool} />
       <Node x={485} y={265} label="payments-db" color={C.resource} />
@@ -148,7 +148,7 @@ function DriftPanel() {
   return (
     <Frame title="Declared versus observed access">
       <Node x={110} y={150} label="ac_eval_strands2" color={C.agent} />
-      <Node x={400} y={60} label="claude-haiku" color={C.llm} />
+      <Node x={400} y={60} label="model-haiku" color={C.llm} />
       <Node x={400} y={130} label="calculator" color={C.tool} />
       <Node x={400} y={200} label="weather" color={C.tool} />
       <Node x={400} y={265} label="strands2-identity" color={C.identity} dim />
@@ -230,11 +230,11 @@ function CostPanel() {
 
 function GuardrailPanel() {
   const rows: [string, string, string, "bad" | "signal" | "ok"][] = [
-    ["BLOCKED", "pii", "hr-assistant → claude-sonnet", "bad"],
-    ["MASKED", "pii", "support-orch → claude-sonnet", "signal"],
-    ["BLOCKED", "prompt-injection", "kb-research → claude-haiku", "bad"],
-    ["PASSED", "—", "billing-agent → claude-sonnet", "ok"],
-    ["MASKED", "pii", "hr-assistant → claude-sonnet", "signal"],
+    ["BLOCKED", "pii", "hr-assistant → model-sonnet", "bad"],
+    ["MASKED", "pii", "support-orch → model-sonnet", "signal"],
+    ["BLOCKED", "prompt-injection", "kb-research → model-haiku", "bad"],
+    ["PASSED", "—", "billing-agent → model-sonnet", "ok"],
+    ["MASKED", "pii", "hr-assistant → model-sonnet", "signal"],
   ];
   return (
     <Frame title="Guardrail intervention log">
