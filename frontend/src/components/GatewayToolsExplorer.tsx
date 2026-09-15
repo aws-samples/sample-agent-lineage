@@ -1,4 +1,5 @@
 import type { Graph, GraphNode } from "../types";
+import { Icon } from "./Icon";
 
 interface Props {
   gateway: GraphNode;
@@ -29,7 +30,7 @@ export function GatewayToolsExplorer({ gateway, graph, onClose }: Props) {
       >
         <div className="modal-header">
           <div>
-            <h2>🔧 Tools behind {gateway.name}</h2>
+            <h2><Icon name="tool" size={18} /> Tools behind {gateway.name}</h2>
             <p className="hint">
               Everything this gateway can provide access to: tool interfaces from the
               registry, hosting targets, observed traffic and downstream resources.
@@ -92,7 +93,7 @@ export function GatewayToolsExplorer({ gateway, graph, onClose }: Props) {
                     <td>
                       {accesses.length > 0
                         ? accesses.map((a) => (
-                            <span key={a.id} className="tag">🗄️ {nameOf(a.target)}</span>
+                            <span key={a.id} className="tag"><Icon name="resource" size={11} />{nameOf(a.target)}</span>
                           ))
                         : "—"}
                     </td>

@@ -30,6 +30,7 @@ import { GatewayToolsExplorer } from "./GatewayToolsExplorer";
 import { GuardrailInterventionsExplorer } from "./GuardrailInterventionsExplorer";
 import { RunsExplorer } from "./RunsExplorer";
 import { RunTimelineView } from "./RunTimelineView";
+import { Icon } from "./Icon";
 
 interface Props {
   node: GraphNode;
@@ -378,7 +379,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
     <aside className="detail-panel">
       <div className="detail-header" style={{ borderTopColor: meta.color }}>
         <span className="detail-type" style={{ background: meta.color }}>
-          {meta.icon} {meta.label}
+          <Icon name={meta.icon} size={11} /> {meta.label}
         </span>
         <h2>{node.name}</h2>
         {node.description && <p className="detail-desc">{node.description}</p>}
@@ -403,7 +404,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
 
       {tab === "usage" && cost && cost.by_llm.length > 0 && (
         <section>
-          <h3>💰 Cost (LLM token usage)</h3>
+          <h3><Icon name="cost" /> Cost (LLM token usage)</h3>
           <div className="cost-summary">
             <div className="cost-big">${cost.total_cost_usd.toFixed(2)}</div>
             <div className="cost-sub">
@@ -431,7 +432,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
 
       {tab === "governance" && evals.some((e) => e.eval_type === "online") && (
         <section>
-          <h3>📡 Online evaluations (continuous)</h3>
+          <h3><Icon name="signal" /> Online evaluations (continuous)</h3>
           <p className="hint run-hint">
             Online configs evaluate each invocation as it happens — the status
             below is the monitor's state, not a test result.
@@ -515,7 +516,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
 
       {tab === "governance" && evals.some((e) => e.eval_type !== "online") && (
         <section>
-          <h3>🧪 On-demand evaluations ({evals.filter((e) => e.eval_type !== "online").length})</h3>
+          <h3><Icon name="flask" /> On-demand evaluations ({evals.filter((e) => e.eval_type !== "online").length})</h3>
           <ul className="eval-list">
             {evals
               .filter((e) => e.eval_type !== "online")
@@ -544,7 +545,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
         node.facets.registry !== undefined &&
         typeof node.facets.registry === "object" && (
         <section>
-          <h3>📇 AgentCore Registry record</h3>
+          <h3><Icon name="card" /> AgentCore Registry record</h3>
           {(() => {
             const reg = node.facets.registry as Record<string, unknown>;
             const status = String(reg.status ?? "");
@@ -569,7 +570,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
         node.facets.cedar_policies !== undefined &&
         typeof node.facets.cedar_policies === "object" && (
           <section>
-            <h3>🛡️ Cedar policies enforced</h3>
+            <h3><Icon name="gateway" /> Cedar policies enforced</h3>
             {Object.entries(node.facets.cedar_policies as Record<string, string>).map(
               ([policyId, policy]) => (
                 <div key={policyId} className="cedar-policy">
@@ -583,7 +584,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
 
       {tab === "governance" && isGateway && (
         <section>
-          <h3>🔧 Tools behind this gateway</h3>
+          <h3><Icon name="tool" /> Tools behind this gateway</h3>
           <button className="focus-btn" onClick={() => setShowToolsExplorer(true)}>
             Open tool catalog (
             {outgoing.filter((e) => e.edge_type === "ROUTES_TO").length}) →
@@ -601,7 +602,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
 
       {tab === "governance" && isGateway && decisions.length > 0 && (
         <section>
-          <h3>📜 Cedar decision log</h3>
+          <h3><Icon name="scroll" /> Cedar decision log</h3>
           <div className="decision-summary">
             <span className="origin origin-both">
               {decisions.filter((d) => d.decision === "ALLOW").length} allowed
@@ -652,7 +653,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
 
       {tab === "overview" && (runVersions.size > 0 || Array.isArray(node.facets.versions)) && (
         <section>
-          <h3>🏷️ Version history</h3>
+          <h3><Icon name="tag" /> Version history</h3>
           {runVersions.size > 0 && (
             <ul>
               {[...runVersions.entries()]
@@ -688,7 +689,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
         node.facets.data_lineage !== undefined &&
         typeof node.facets.data_lineage === "object" && (
           <section>
-            <h3>🔗 Data lineage (OpenLineage)</h3>
+            <h3><Icon name="link" /> Data lineage (OpenLineage)</h3>
             <FacetTable
               facets={Object.fromEntries(
                 Object.entries(node.facets.data_lineage as Record<string, unknown>).filter(
@@ -734,7 +735,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
 
       {tab === "usage" && node.node_type === "agent" && callerCosts && callerCosts.callers.length > 0 && (
         <section>
-          <h3>👥 Cost by caller</h3>
+          <h3><Icon name="users" /> Cost by caller</h3>
           <p className="hint run-hint">
             Which user groups / OAuth clients this agent's spend is attributable
             to, from the caller claim on each run.
@@ -759,7 +760,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
 
       {tab === "usage" && node.node_type === "user_group" && callerCosts && callerCosts.callers.length > 0 && (
         <section>
-          <h3>💰 Cost incurred by this caller</h3>
+          <h3><Icon name="cost" /> Cost incurred by this caller</h3>
           {(() => {
             const me = callerCosts.callers[0];
             return (
@@ -794,7 +795,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
 
       {tab === "usage" && isLlm && llmStats && llmStats.invocations > 0 && (
         <section>
-          <h3>💰 Model usage</h3>
+          <h3><Icon name="cost" /> Model usage</h3>
           <div className="cost-summary">
             <div className="cost-big">${llmStats.cost_usd.toFixed(2)}</div>
             <div className="cost-sub">
@@ -825,7 +826,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
 
       {tab === "governance" && isLlm && guardedBy.length > 0 && (
         <section>
-          <h3>🚧 Guardrails applied to this model</h3>
+          <h3><Icon name="guardrail" /> Guardrails applied to this model</h3>
           <ul>
             {guardedBy.map((e) => (
               <li key={e.id}>
@@ -840,7 +841,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
 
       {tab === "governance" && isGuardrail && interventions.length > 0 && (
         <section>
-          <h3>🚧 Guardrail intervention log</h3>
+          <h3><Icon name="guardrail" /> Guardrail intervention log</h3>
           <div className="decision-summary">
             <span className="deny-chip">
               {interventions.filter((i) => i.action === "BLOCKED").length} blocked
@@ -921,7 +922,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
 
       {tab === "overview" && node.node_type === "identity" && (
         <section>
-          <h3>🪪 Identity traceability</h3>
+          <h3><Icon name="identity" /> Identity traceability</h3>
           <dl className="nested-facets">
             <div className="nested-row">
               <dt>identity type</dt>
@@ -938,7 +939,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
                   <dd>
                     {ownerEdge ? (
                       <>
-                        🤖 <b>{nameOf(ownerEdge.source)}</b>
+                        <Icon name="agent" size={13} /> <b>{nameOf(ownerEdge.source)}</b>
                         <OriginChip origin={ownerEdge.origin} />
                       </>
                     ) : (
@@ -956,7 +957,7 @@ export function DetailPanel({ node, graph, since, onFocus }: Props) {
                     {outgoing
                       .filter((e) => e.edge_type === "USES_CREDENTIAL")
                       .map((e) => (
-                        <span key={e.id} className="tag">🔑 {nameOf(e.target)}</span>
+                        <span key={e.id} className="tag"><Icon name="credential" size={11} />{nameOf(e.target)}</span>
                       ))}
                   </span>
                 ) : (

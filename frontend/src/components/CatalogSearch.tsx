@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchCatalog } from "../api";
 import { NODE_TYPE_META, type CatalogEntry, type NodeType } from "../types";
+import { Icon } from "./Icon";
 
 // Dropdown group order.
 const GROUP_ORDER: NodeType[] = [
@@ -80,7 +81,7 @@ export function CatalogSearch({ selected, onChange, refreshSignal = 0, namespace
       <div className="catalog-input-row">
         {selected.map((a) => (
           <span key={a.id} className="chip">
-            {NODE_TYPE_META[a.node_type].icon} {a.name}
+            <Icon name={NODE_TYPE_META[a.node_type].icon} size={12} /> {a.name}
             <button aria-label={`Remove ${a.name}`} onClick={() => toggle(a)}>×</button>
           </span>
         ))}
@@ -117,7 +118,7 @@ export function CatalogSearch({ selected, onChange, refreshSignal = 0, namespace
                 }
                 onClick={() => setActiveType(g.type)}
               >
-                {NODE_TYPE_META[g.type].icon} {NODE_TYPE_META[g.type].label}s
+                <Icon name={NODE_TYPE_META[g.type].icon} size={12} style={{ color: NODE_TYPE_META[g.type].color }} /> {NODE_TYPE_META[g.type].label}s
                 <span className="cat-group-count">{g.entries.length}</span>
               </button>
             ))}

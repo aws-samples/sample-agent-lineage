@@ -1,5 +1,6 @@
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { NODE_TYPE_META, type GraphNode } from "../types";
+import { Icon } from "./Icon";
 
 export type EntityFlowNode = Node<{ entity: GraphNode }, "entity">;
 
@@ -27,7 +28,7 @@ export function EntityNode({ data, selected }: NodeProps<EntityFlowNode>) {
     >
       <Handle type="target" position={Position.Left} />
       <div className="entity-node-header" style={{ background: meta.color }}>
-        <span aria-hidden>{meta.icon}</span> {meta.label}
+        <Icon name={meta.icon} size={11} /> {meta.label}
       </div>
       <div className="entity-node-name" title={entity.description}>
         {entity.name}

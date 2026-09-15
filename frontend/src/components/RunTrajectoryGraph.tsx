@@ -11,9 +11,10 @@ import {
 } from "@xyflow/react";
 import { layoutLR } from "../layout";
 import { NODE_TYPE_META, type NodeType, type RunTimeline } from "../types";
+import { Icon, type IconName } from "./Icon";
 
 interface TrajData {
-  icon: string;
+  icon: IconName;
   color: string;
   name: string;
   sub: string;
@@ -27,7 +28,7 @@ function TrajNode({ data }: NodeProps<TrajFlowNode>) {
     <div className="traj-node" style={{ borderColor: data.color }}>
       <Handle type="target" position={Position.Left} />
       <div className="traj-node-name">
-        <span aria-hidden>{data.icon}</span> {data.name}
+        <Icon name={data.icon} size={12} style={{ color: data.color }} /> {data.name}
       </div>
       {data.sub && <div className="traj-node-sub">{data.sub}</div>}
       <Handle type="source" position={Position.Right} />
@@ -130,11 +131,11 @@ export function RunTrajectoryGraph({ timeline }: { timeline: RunTimeline }) {
     }
 
     const flowNodes: Node[] = [...entities.entries()].map(([id, e]) => {
-      const meta =
+      const meta: { icon: IconName; color: string } =
         e.type === "start"
-          ? { icon: "▶", color: "#059669" }
+          ? { icon: "signal", color: "#059669" }
           : e.type === "end"
-            ? { icon: e.name === "FAIL" ? "✖" : "■", color: e.name === "FAIL" ? "#dc2626" : "#334155" }
+            ? { icon: e.name === "FAIL" ? "x" : "check", color: e.name === "FAIL" ? "#dc2626" : "#334155" }
             : NODE_TYPE_META[e.type as NodeType];
       const failed = failedIds.has(id);
       const subParts: string[] = [];

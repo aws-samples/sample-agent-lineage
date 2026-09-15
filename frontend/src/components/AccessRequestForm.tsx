@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchAccessRequests, submitAccessRequest } from "../api";
 import type { AccessRequest } from "../types";
+import { Icon } from "./Icon";
 
 /** Shown to viewers (in place of the graph) when they have no account access
  *  yet, or via "Request access" to ask for another account. Admins are
@@ -56,7 +57,7 @@ export function AccessRequestForm() {
 
   return (
     <div className="access-request">
-      <div className="empty-icon">🔐</div>
+      <div className="empty-icon"><Icon name="lock" size={42} /></div>
       <h2>Request account access</h2>
       <p className="hint">
         You don't have access to any AWS account lineage yet — or need another

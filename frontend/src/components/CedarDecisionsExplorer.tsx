@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchCedarDecisions } from "../api";
 import type { CedarDecision } from "../types";
+import { Icon } from "./Icon";
 
 const FILTERS = ["ALL", "ALLOW", "DENY"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -39,7 +40,7 @@ export function CedarDecisionsExplorer({ gatewayId, gatewayName, onClose }: Prop
       >
         <div className="modal-header">
           <div>
-            <h2>🛡️ Cedar decisions · {gatewayName}</h2>
+            <h2><Icon name="gateway" size={18} /> Cedar decisions · {gatewayName}</h2>
             <p className="hint">
               Every authorization decision this gateway made: which agent asked for
               which tool, and which policy allowed or denied it.

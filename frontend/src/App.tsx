@@ -5,6 +5,7 @@ import { AccessRequestsModal } from "./components/AccessRequestsModal";
 import { AwsConnectModal } from "./components/AwsConnectModal";
 import { CatalogSearch } from "./components/CatalogSearch";
 import { DetailPanel } from "./components/DetailPanel";
+import { Icon } from "./components/Icon";
 import { LineageGraph } from "./components/LineageGraph";
 import {
   NODE_TYPE_META,
@@ -139,7 +140,7 @@ export default function App() {
         </div>
         {namespaces.length > 0 && (
           <label className="window-select ns-select" title="Scope the lineage to one account/region">
-            ☁️ Account
+            <Icon name="cloud" size={13} /> Account
             <select value={namespace} onChange={(e) => setNamespace(e.target.value)}>
               <option value="">
                 {namespaces.length > 1 ? `All (${namespaces.length})` : "All"}
@@ -167,7 +168,7 @@ export default function App() {
           aria-label="Toggle color theme"
           onClick={toggleTheme}
         >
-          {theme === "dark" ? "☀️" : "🌙"}
+          <Icon name={theme === "dark" ? "sun" : "moon"} size={16} />
         </button>
         {isAdmin ? (
           <>
@@ -176,10 +177,10 @@ export default function App() {
               title="Review viewer access requests"
               onClick={() => setShowRequestsModal(true)}
             >
-              🔑 Requests
+              <Icon name="key" size={13} />Requests
             </button>
             <button className="focus-btn aws-connect-btn" onClick={() => setShowAwsModal(true)}>
-              ☁️ Connect AWS
+              <Icon name="cloud" size={13} />Connect AWS
             </button>
           </>
         ) : (
@@ -188,7 +189,7 @@ export default function App() {
             title="Request access to another AWS account"
             onClick={() => setShowRequestForm((v) => !v)}
           >
-            🔑 Request access
+            <Icon name="key" size={13} />Request access
           </button>
         )}
       </header>
@@ -262,7 +263,7 @@ export default function App() {
           ) : (
             !error && (
               <div className="empty-state">
-                <div className="empty-icon">⛓️</div>
+                <div className="empty-icon"><Icon name="link" size={42} /></div>
                 <h2>Pick an agent to trace</h2>
                 <p>
                   Search the AgentCore catalog above and select one or more agents to see

@@ -1,3 +1,5 @@
+import type { IconName } from "./components/Icon";
+
 export type NodeType =
   | "user_group"
   | "agent"
@@ -192,19 +194,19 @@ export interface AgentCost {
 /** Visual config per node type; column enforces the left-to-right story. */
 export const NODE_TYPE_META: Record<
   NodeType,
-  { label: string; color: string; icon: string; column: number }
+  { label: string; color: string; icon: IconName; column: number }
 > = {
-  user_group: { label: "User Group", color: "#8b5cf6", icon: "👥", column: 0 },
-  agent: { label: "Agent", color: "#2563eb", icon: "🤖", column: 1 },
-  skill: { label: "Skill", color: "#db2777", icon: "🎯", column: 2 },
-  prompt: { label: "Prompt", color: "#6366f1", icon: "📝", column: 2 },
-  identity: { label: "Identity", color: "#0d9488", icon: "🪪", column: 2 },
-  credential: { label: "Credential", color: "#ca8a04", icon: "🔑", column: 3 },
-  gateway: { label: "Gateway", color: "#0891b2", icon: "🛡️", column: 2 },
-  guardrail: { label: "Guardrail", color: "#e11d48", icon: "🚧", column: 4 },
-  tool: { label: "Tool", color: "#059669", icon: "🔧", column: 3 },
-  llm: { label: "LLM", color: "#d97706", icon: "🧠", column: 3 },
-  resource: { label: "Resource", color: "#dc2626", icon: "🗄️", column: 4 },
+  user_group: { label: "User Group", color: "#8b5cf6", icon: "user-group", column: 0 },
+  agent: { label: "Agent", color: "#2563eb", icon: "agent", column: 1 },
+  skill: { label: "Skill", color: "#db2777", icon: "skill", column: 2 },
+  prompt: { label: "Prompt", color: "#6366f1", icon: "prompt", column: 2 },
+  identity: { label: "Identity", color: "#0d9488", icon: "identity", column: 2 },
+  credential: { label: "Credential", color: "#ca8a04", icon: "credential", column: 3 },
+  gateway: { label: "Gateway", color: "#0891b2", icon: "gateway", column: 2 },
+  guardrail: { label: "Guardrail", color: "#e11d48", icon: "guardrail", column: 4 },
+  tool: { label: "Tool", color: "#059669", icon: "tool", column: 3 },
+  llm: { label: "LLM", color: "#d97706", icon: "llm", column: 3 },
+  resource: { label: "Resource", color: "#dc2626", icon: "resource", column: 4 },
 };
 
 export interface MeInfo {

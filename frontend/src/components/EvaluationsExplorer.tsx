@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchEvaluations } from "../api";
 import type { Evaluation } from "../types";
+import { Icon } from "./Icon";
 
 const FILTERS = ["ALL", "ONLINE", "ON-DEMAND"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -99,7 +100,7 @@ export function EvaluationsExplorer({ agentId, agentName, onClose }: Props) {
                       <td className="expand-caret">{isOpen ? "▾" : "▸"}</td>
                       <td><b>{ev.name}</b></td>
                       <td>
-                        <span className="tag">{isOnline ? "📡 online" : `🧪 ${ev.eval_type}`}</span>
+                        <span className="tag"><Icon name={isOnline ? "signal" : "flask"} size={11} />{isOnline ? "online" : ev.eval_type}</span>
                       </td>
                       <td>
                         <span className={`eval-status eval-${ev.status.toLowerCase()}`}>

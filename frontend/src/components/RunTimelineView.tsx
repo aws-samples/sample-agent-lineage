@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { RunTimeline } from "../types";
 import { RunTrajectoryGraph } from "./RunTrajectoryGraph";
+import { Icon } from "./Icon";
 
 interface Props {
   timeline: RunTimeline;
@@ -66,33 +67,33 @@ export function RunTimelineView({ timeline, traceUrl }: Props) {
                 <small>{new Date(s.time).toLocaleTimeString()}</small>
               </div>
               <div className="timeline-detail">
-                {s.on_behalf_of && <span className="tag">👥 {s.on_behalf_of}</span>}
+                {s.on_behalf_of && <span className="tag"><Icon name="user-group" size={11} />{s.on_behalf_of}</span>}
                 {s.sub_agents.map((a) => (
-                  <span key={a} className="tag">🤖 → {a}</span>
+                  <span key={a} className="tag"><Icon name="agent" size={11} />→ {a}</span>
                 ))}
                 {s.tools.map((t) => (
-                  <span key={t} className="tag">🔧 {t}</span>
+                  <span key={t} className="tag"><Icon name="tool" size={11} />{t}</span>
                 ))}
                 {s.gateway_calls.map((c, j) => (
                   <span key={j} className={c.decision === "DENY" ? "deny-chip" : "tag"}>
-                    🛡️ {c.gateway} → {c.tool} {c.decision === "DENY" ? "DENIED" : ""}
+                    <Icon name="gateway" size={11} />{c.gateway} → {c.tool} {c.decision === "DENY" ? "DENIED" : ""}
                   </span>
                 ))}
                 {s.guardrails
                   .filter((g) => g.action !== "PASSED")
                   .map((g, j) => (
                     <span key={j} className="deny-chip">
-                      🚧 {g.guardrail} {g.action} ({g.category})
+                      <Icon name="guardrail" size={11} />{g.guardrail} {g.action} ({g.category})
                     </span>
                   ))}
                 {s.llms.map((l) => (
                   <span key={l.name} className="tag">
-                    🧠 {l.name} {l.input_tokens.toLocaleString()}/
+                    <Icon name="llm" size={11} />{l.name} {l.input_tokens.toLocaleString()}/
                     {l.output_tokens.toLocaleString()} tok
                   </span>
                 ))}
                 {s.resources.map((res) => (
-                  <span key={res} className="tag">🗄️ {res}</span>
+                  <span key={res} className="tag"><Icon name="resource" size={11} />{res}</span>
                 ))}
               </div>
               {s.error && (

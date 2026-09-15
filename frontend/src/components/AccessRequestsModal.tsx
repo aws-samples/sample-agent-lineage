@@ -60,7 +60,7 @@ export function AccessRequestsModal({ onClose }: Props) {
         {error && <div className="error aws-result">{error}</div>}
 
         <h3>Pending ({pending.length})</h3>
-        {pending.length === 0 && <p className="hint">Nothing waiting on you. 🎉</p>}
+        {pending.length === 0 && <p className="hint">Nothing waiting on you.</p>}
         {pending.map((r) => (
           <div key={r.id} className="aws-result access-pending">
             <div className="aws-result-head">

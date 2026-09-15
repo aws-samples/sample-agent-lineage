@@ -105,6 +105,14 @@ table, .cost-big, .run-cost, .runs-cost, .count, .eval-score, .decision-meta, .e
 }
 code, pre, .mono-value, .facet-code, .run-error-msg { font-family: var(--font-mono); }
 
+/* ---- Icons: inline SVG, inherit color, optically centered on the text line ---- */
+.icon { display: inline-block; vertical-align: -0.15em; flex: none; }
+h2 > .icon, h3 > .icon { margin-right: 6px; vertical-align: -0.125em; }
+.tag > .icon, .chip > .icon, .detail-type > .icon, .entity-node-header > .icon { margin-right: 3px; }
+button > .icon { margin-right: 5px; }
+.entity-node-header, .detail-type, .tag, .chip { display: inline-flex; align-items: center; }
+.entity-node-header { display: flex; }
+
 /* ---- Focus: visible for keyboard users, invisible for pointer users ---- */
 :focus { outline: none; }
 :focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 6px; }

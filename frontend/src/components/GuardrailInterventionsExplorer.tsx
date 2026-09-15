@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchGuardrailInterventions } from "../api";
 import type { GuardrailIntervention } from "../types";
+import { Icon } from "./Icon";
 
 const FILTERS = ["ALL", "BLOCKED", "MASKED", "PASSED"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -57,7 +58,7 @@ export function GuardrailInterventionsExplorer({ guardrailId, guardrailName, onC
       >
         <div className="modal-header">
           <div>
-            <h2>🚧 Guardrail interventions · {guardrailName}</h2>
+            <h2><Icon name="guardrail" size={18} /> Guardrail interventions · {guardrailName}</h2>
             <p className="hint">
               Every check this guardrail performed on model traffic: which agent's
               call was blocked, masked or passed, in which category, and during
