@@ -3,6 +3,7 @@ import readme from "../../../README.md?raw";
 import { Icon } from "./Icon";
 import { LogoLockup } from "./Logo";
 import { REPO_URL, renderMarkdown } from "./Markdown";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface Props {
   onBack: () => void;
@@ -32,6 +33,7 @@ export function Docs({ onBack }: Props) {
         <a className="docs-repo" href={REPO_URL} target="_blank" rel="noreferrer">
           View source on GitHub ↗
         </a>
+        <ThemeToggle />
       </header>
 
       <div className="docs-body">

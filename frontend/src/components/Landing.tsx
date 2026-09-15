@@ -3,6 +3,7 @@ import { Icon } from "./Icon";
 import { LogoLockup } from "./Logo";
 import { REPO_URL } from "./Markdown";
 import { Showcase } from "./Showcase";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface Props {
   /** "signin": auth enabled, the action starts the Cognito hosted-UI flow.
@@ -29,6 +30,7 @@ export function Landing({ mode, onEnter }: Props) {
         <nav className="landing-nav" aria-label="Site">
           <a className="landing-navlink" href="#/docs">Docs</a>
           <a className="landing-navlink" href={REPO_URL} target="_blank" rel="noreferrer">GitHub ↗</a>
+          <ThemeToggle />
           <button className="landing-signin landing-signin-quiet" onClick={go} disabled={busy}>
             Login
           </button>

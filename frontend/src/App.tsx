@@ -8,6 +8,7 @@ import { DetailPanel } from "./components/DetailPanel";
 import { Icon } from "./components/Icon";
 import { LineageGraph } from "./components/LineageGraph";
 import { LogoLockup } from "./components/Logo";
+import { ThemeToggle } from "./components/ThemeToggle";
 import {
   NODE_TYPE_META,
   type CatalogEntry,
@@ -39,16 +40,6 @@ export default function App() {
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [timeframe, setTimeframe] = useState<Timeframe>("30d");
   const [layersOpen, setLayersOpen] = useState(true);
-  const [theme, setTheme] = useState<"light" | "dark">(
-    () => (document.documentElement.dataset.theme === "dark" ? "dark" : "light"),
-  );
-
-  const toggleTheme = () => {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    document.documentElement.dataset.theme = next;
-    localStorage.setItem("al_theme", next);
-  };
 
   useEffect(() => {
     fetchNamespaces().then(setNamespaces).catch(() => setNamespaces([]));
@@ -146,14 +137,7 @@ export default function App() {
             <option value="all">All time</option>
           </select>
         </label>
-        <button
-          className="theme-toggle"
-          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          aria-label="Toggle color theme"
-          onClick={toggleTheme}
-        >
-          <Icon name={theme === "dark" ? "sun" : "moon"} size={16} />
-        </button>
+        <ThemeToggle />
         {isAdmin ? (
           <>
             <button
