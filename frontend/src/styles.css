@@ -825,12 +825,85 @@ button:disabled { cursor: not-allowed; }
     var(--bg);
   color: var(--text);
 }
+/* Light is its own scene — a bright control room, not an inverted dark
+   one. Cool paper ground, real warmth in the atmosphere, and the hero card
+   as a lit instrument surface with a defined edge. */
 [data-theme="light"] .landing {
+  --bg: #f4f6fa;
   background:
-    radial-gradient(1100px 520px at 78% 18%, rgba(217, 138, 0, 0.09), transparent 60%),
-    radial-gradient(900px 600px at 15% 90%, rgba(33, 96, 216, 0.06), transparent 60%),
-    var(--bg);
+    radial-gradient(1200px 560px at 78% 14%, rgba(245, 165, 36, 0.22), transparent 62%),
+    radial-gradient(900px 640px at 12% 92%, rgba(33, 96, 216, 0.14), transparent 62%),
+    radial-gradient(700px 420px at 50% 40%, rgba(255, 255, 255, 0.9), transparent 70%),
+    linear-gradient(180deg, #f8fafd 0%, #eef2f8 100%);
 }
+[data-theme="light"] .landing::before {
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.06) 1px, transparent 1px);
+}
+[data-theme="light"] .landing-top { background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(8px); }
+[data-theme="light"] .landing-title { color: #0b1220; }
+[data-theme="light"] .landing-lead { color: #3b4657; }
+[data-theme="light"] .landing-lead em { color: #0b1220; }
+[data-theme="light"] .landing-signin {
+  background: #0f172a; color: #fff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.22), 0 2px 6px rgba(15, 23, 42, 0.14);
+}
+[data-theme="light"] .landing-signin:hover:not(:disabled) { background: #1e293b; }
+[data-theme="light"] .landing-signin-quiet {
+  background: #fff; color: #0f172a; border-color: rgba(15, 23, 42, 0.14); box-shadow: none;
+}
+[data-theme="light"] .landing-signin-quiet:hover:not(:disabled) { background: #f1f5f9; }
+[data-theme="light"] .landing-navlink { color: #3b4657; }
+[data-theme="light"] .landing-navlink:hover { color: #0b1220; background: rgba(15, 23, 42, 0.06); }
+
+/* hero card: a lit instrument screen on a light desk. A cool graphite-blue
+   surface so it reads as a distinct object — the dark-mode console's twin,
+   not paper on paper. */
+[data-theme="light"] .landing-tilt {
+  background-color: #1b2333;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.16) 1px, transparent 1.5px),
+    radial-gradient(900px 400px at 30% 0%, rgba(111, 168, 255, 0.18), transparent 60%),
+    linear-gradient(160deg, #222c3f 0%, #161d2b 100%);
+  background-size: 24px 24px, 100% 100%, 100% 100%;
+  border: 1px solid rgba(15, 23, 42, 0.35);
+  box-shadow:
+    0 34px 80px rgba(15, 23, 42, 0.28),
+    0 12px 28px rgba(15, 23, 42, 0.16),
+    0 0 0 1px rgba(255, 255, 255, 0.10) inset;
+}
+[data-theme="light"] .hn-box { fill: #26314a; stroke-width: 1.4; }
+[data-theme="light"] .hn-label { fill: #eef2f8; }
+[data-theme="light"] .he-declared .he-line { stroke: #6b7a93; }
+[data-theme="light"] .he-both .he-line { stroke: #2fbf8f; }
+[data-theme="light"] .he-observed .he-line { stroke: #f5a524; }
+[data-theme="light"] .he-tag { fill: #ffc157; }
+[data-theme="light"] .he-packet { fill: #2fbf8f; }
+[data-theme="light"] .he-observed .he-packet { fill: #f5a524; }
+
+/* showcase: tabs earn a real accent; the panel becomes a lit surface */
+[data-theme="light"] .showcase { border-top-color: rgba(15, 23, 42, 0.08); }
+[data-theme="light"] .showcase-head h2 { color: #0b1220; }
+[data-theme="light"] .showcase-tabs { background: #fff; border-color: rgba(15, 23, 42, 0.12); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05); }
+[data-theme="light"] .showcase-tab { color: #3b4657; }
+[data-theme="light"] .showcase-tab:hover { background: #f1f5f9; color: #0b1220; }
+[data-theme="light"] .showcase-tab-active { background: #0f172a; color: #fff; border-color: #0f172a; }
+[data-theme="light"] .showcase-tab-signal.showcase-tab-active { background: #f5a524; color: #1a1200; border-color: #f5a524; }
+[data-theme="light"] .showcase-body {
+  background: #fff; border-color: rgba(15, 23, 42, 0.12);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.10), 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+[data-theme="light"] .showcase-copy h3 { color: #0b1220; }
+[data-theme="light"] .sc-frame { fill: #f6f8fb; stroke: rgba(15, 23, 42, 0.12); }
+[data-theme="light"] .sc-box { fill: #ffffff; }
+[data-theme="light"] .sc-label, [data-theme="light"] .sc-td-strong { fill: #0f172a; }
+
+/* beats: cards on the paper, each with a soft lift */
+[data-theme="light"] .landing-beats { background: rgba(15, 23, 42, 0.08); border-color: rgba(15, 23, 42, 0.08); }
+[data-theme="light"] .beat { background: #fff; }
+[data-theme="light"] .beat h2 { color: #0b1220; }
+[data-theme="light"] .landing-foot { background: rgba(255, 255, 255, 0.5); border-top-color: rgba(15, 23, 42, 0.08); }
 /* fine graph-paper grid, like the console canvas — quiet, structural */
 .landing::before {
   content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
