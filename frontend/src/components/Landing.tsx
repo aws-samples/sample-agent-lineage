@@ -67,8 +67,9 @@ export function Landing({ mode, onEnter }: Props) {
           </div>
           <p className="landing-caption">
             <span className="landing-caption-tag">Example estate</span>
-            A support team's agent reaches a payments database through a gateway —
-            the amber edge is access nobody declared.
+            A customer-service triage agent hands refunds to a specialist, which
+            reaches tools through a gateway — the amber edge is the gateway
+            touching the finance ledger with no declaration behind it.
           </p>
         </div>
       </main>
@@ -127,15 +128,19 @@ function Beat({ icon, title, text, signal }: { icon: "agent" | "gateway" | "cost
    the undeclared edge fires amber last. Pure SVG + CSS, no runtime deps.
    --------------------------------------------------------------------- */
 type N = { id: string; x: number; y: number; label: string; kind: "group" | "agent" | "gateway" | "tool" | "llm" | "resource" };
+/* A realistic estate: a customer-service desk whose triage agent hands
+   refunds to a specialist, which reaches tools through a gateway. The story
+   beat is the last edge — the gateway touching the ledger with no
+   declaration behind it. */
 const NODES: N[] = [
-  { id: "g", x: 60, y: 210, label: "support-team", kind: "group" },
-  { id: "a", x: 220, y: 210, label: "support-orchestrator", kind: "agent" },
-  { id: "b", x: 400, y: 110, label: "billing-agent", kind: "agent" },
-  { id: "gw", x: 400, y: 310, label: "enterprise-api-gw", kind: "gateway" },
-  { id: "llm", x: 590, y: 60, label: "model-sonnet", kind: "llm" },
-  { id: "t1", x: 590, y: 200, label: "refund-processor", kind: "tool" },
-  { id: "t2", x: 590, y: 300, label: "crm-lookup", kind: "tool" },
-  { id: "r", x: 590, y: 390, label: "payments-db", kind: "resource" },
+  { id: "g", x: 60, y: 210, label: "customer-service", kind: "group" },
+  { id: "a", x: 220, y: 210, label: "case-triage-agent", kind: "agent" },
+  { id: "b", x: 400, y: 110, label: "refunds-agent", kind: "agent" },
+  { id: "gw", x: 400, y: 310, label: "commerce-gateway", kind: "gateway" },
+  { id: "llm", x: 590, y: 60, label: "claude-sonnet", kind: "llm" },
+  { id: "t1", x: 590, y: 200, label: "issue-refund", kind: "tool" },
+  { id: "t2", x: 590, y: 300, label: "order-lookup", kind: "tool" },
+  { id: "r", x: 590, y: 390, label: "ledger-postgres", kind: "resource" },
 ];
 const COLOR: Record<N["kind"], string> = {
   group: "#8b5cf6", agent: "#2563eb", gateway: "#0891b2", tool: "#059669", llm: "#d97706", resource: "#dc2626",

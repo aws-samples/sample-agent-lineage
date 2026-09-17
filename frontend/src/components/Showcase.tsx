@@ -125,14 +125,14 @@ function Frame({ children, title }: { children: React.ReactNode; title: string }
 function GraphPanel() {
   return (
     <Frame title="Lineage graph view">
-      <Node x={70} y={150} label="support-team" color={C.group} />
-      <Node x={205} y={150} label="support-orch" color={C.agent} />
-      <Node x={345} y={70} label="billing-agent" color={C.agent} />
-      <Node x={345} y={230} label="enterprise-gw" color={C.gateway} />
-      <Node x={485} y={40} label="model-sonnet" color={C.llm} />
-      <Node x={485} y={120} label="refund-proc" color={C.tool} />
-      <Node x={485} y={200} label="crm-lookup" color={C.tool} />
-      <Node x={485} y={265} label="payments-db" color={C.resource} />
+      <Node x={70} y={150} label="customer-service" color={C.group} />
+      <Node x={205} y={150} label="case-triage" color={C.agent} />
+      <Node x={345} y={70} label="refunds-agent" color={C.agent} />
+      <Node x={345} y={230} label="commerce-gw" color={C.gateway} />
+      <Node x={485} y={40} label="claude-sonnet" color={C.llm} />
+      <Node x={485} y={120} label="issue-refund" color={C.tool} />
+      <Node x={485} y={200} label="order-lookup" color={C.tool} />
+      <Node x={485} y={265} label="ledger-postgres" color={C.resource} />
       <Edge d={curve(70, 150, 205, 150)} kind="ok" />
       <Edge d={curve(205, 150, 345, 70)} kind="ok" />
       <Edge d={curve(205, 150, 345, 230)} kind="ok" />
@@ -147,15 +147,17 @@ function GraphPanel() {
 function DriftPanel() {
   return (
     <Frame title="Declared versus observed access">
-      <Node x={110} y={150} label="ac_eval_strands2" color={C.agent} />
-      <Node x={400} y={60} label="model-haiku" color={C.llm} />
-      <Node x={400} y={130} label="calculator" color={C.tool} />
-      <Node x={400} y={200} label="weather" color={C.tool} />
-      <Node x={400} y={265} label="strands2-identity" color={C.identity} dim />
-      <Edge d={curve(110, 150, 400, 60)} kind="signal" />
-      <Edge d={curve(110, 150, 400, 130)} kind="signal" />
-      <Edge d={curve(110, 150, 400, 200)} kind="signal" />
-      <Edge d={curve(110, 150, 400, 265)} kind="declared" />
+      <Node x={110} y={150} label="close-analyst-agent" color={C.agent} />
+      <Node x={400} y={60} label="claude-haiku" color={C.llm} />
+      <Node x={400} y={130} label="journal-export" color={C.tool} />
+      <Node x={400} y={200} label="fx-rates" color={C.tool} />
+      <Node x={400} y={265} label="reconcile-ledger" color={C.tool} dim />
+      {/* fan the exit points across the agent's height so four edges
+          leave cleanly instead of knotting at one centre point */}
+      <Edge d={curve(110, 141, 400, 60)} kind="signal" />
+      <Edge d={curve(110, 147, 400, 130)} kind="signal" />
+      <Edge d={curve(110, 153, 400, 200)} kind="signal" />
+      <Edge d={curve(110, 159, 400, 265)} kind="declared" />
       <Chip x={470} y={60} text="undeclared" kind="signal" />
       <Chip x={470} y={130} text="undeclared" kind="signal" />
       <Chip x={470} y={200} text="undeclared" kind="signal" />
@@ -167,18 +169,18 @@ function DriftPanel() {
 
 function GovernancePanel() {
   const rows: [string, string, string, string, "ok" | "bad"][] = [
-    ["DENY", "billing-agent", "refund-processor", "refunds-under-1000", "bad"],
-    ["ALLOW", "support-orch", "crm-lookup", "support-read", "ok"],
-    ["ALLOW", "billing-agent", "invoice-search", "billing-read", "ok"],
-    ["DENY", "finance-orch", "payroll-adjust", "payroll-adjust-limit", "bad"],
-    ["ALLOW", "support-orch", "ticket-router", "support-read", "ok"],
-    ["ALLOW", "kb-research", "vector-search", "kb-read", "ok"],
+    ["DENY", "refunds-agent", "issue-refund", "refund-cap-500", "bad"],
+    ["ALLOW", "case-triage", "order-lookup", "cs-read", "ok"],
+    ["ALLOW", "refunds-agent", "order-lookup", "cs-read", "ok"],
+    ["DENY", "close-analyst", "journal-post", "close-window-only", "bad"],
+    ["ALLOW", "case-triage", "shipment-status", "cs-read", "ok"],
+    ["ALLOW", "close-analyst", "journal-export", "finance-read", "ok"],
   ];
   return (
     <Frame title="Cedar decision log">
-      <text x={18} y={26} className="sc-caption">enterprise-api-gateway · Cedar decisions</text>
-      <Chip x={392} y={22} text="90 allowed" kind="ok" />
-      <Chip x={480} y={22} text="10 denied" kind="bad" />
+      <text x={18} y={26} className="sc-caption">commerce-gateway · Cedar decisions</text>
+      <Chip x={388} y={22} text="412 allowed" kind="ok" />
+      <Chip x={478} y={22} text="17 denied" kind="bad" />
       {["decision", "agent", "tool", "policy"].map((h, i) => (
         <text key={h} x={[18, 110, 240, 390][i]} y={56} className="sc-th">{h}</text>
       ))}
@@ -201,16 +203,16 @@ function GovernancePanel() {
 
 function CostPanel() {
   const rows: [string, string, number][] = [
-    ["support-orchestrator", "$1.09", 1.0],
-    ["kb-research-agent", "$1.07", 0.98],
-    ["billing-agent", "$0.11", 0.10],
-    ["marketing-content", "$0.08", 0.07],
+    ["case-triage-agent", "$48.20", 1.0],
+    ["refunds-agent", "$21.75", 0.45],
+    ["policy-lookup-agent", "$9.40", 0.20],
+    ["shipment-status-agent", "$3.15", 0.07],
   ];
   return (
     <Frame title="Cost attribution by caller">
-      <text x={18} y={26} className="sc-caption">support-team · cost incurred by this caller</text>
-      <text x={18} y={70} className="sc-big">$2.34</text>
-      <text x={112} y={70} className="sc-sub">40 runs · 567,044 in / 103,822 out tokens</text>
+      <text x={18} y={26} className="sc-caption">customer-service · cost incurred by this caller</text>
+      <text x={18} y={70} className="sc-big">$82.50</text>
+      <text x={132} y={70} className="sc-sub">1,284 runs · 14.2M in / 2.9M out tokens · last 30 days</text>
       <line x1="18" y1="90" x2="542" y2="90" className="sc-rule" />
       {rows.map((r, i) => {
         const y = 118 + i * 40;
@@ -230,18 +232,18 @@ function CostPanel() {
 
 function GuardrailPanel() {
   const rows: [string, string, string, "bad" | "signal" | "ok"][] = [
-    ["BLOCKED", "pii", "hr-assistant → model-sonnet", "bad"],
-    ["MASKED", "pii", "support-orch → model-sonnet", "signal"],
-    ["BLOCKED", "prompt-injection", "kb-research → model-haiku", "bad"],
-    ["PASSED", "—", "billing-agent → model-sonnet", "ok"],
-    ["MASKED", "pii", "hr-assistant → model-sonnet", "signal"],
+    ["BLOCKED", "pii", "case-triage → claude-sonnet", "bad"],
+    ["MASKED", "pii", "refunds-agent → claude-sonnet", "signal"],
+    ["BLOCKED", "prompt-injection", "policy-lookup → claude-haiku", "bad"],
+    ["PASSED", "—", "shipment-status → claude-haiku", "ok"],
+    ["MASKED", "card-number", "refunds-agent → claude-sonnet", "signal"],
   ];
   return (
     <Frame title="Guardrail intervention log">
-      <text x={18} y={26} className="sc-caption">enterprise-pii-shield · 164 checks</text>
-      <Chip x={332} y={22} text="7 blocked" kind="bad" />
-      <Chip x={412} y={22} text="4 masked" kind="signal" />
-      <Chip x={488} y={22} text="153 passed" kind="ok" />
+      <text x={18} y={26} className="sc-caption">customer-data-shield · 3,061 checks</text>
+      <Chip x={312} y={22} text="19 blocked" kind="bad" />
+      <Chip x={398} y={22} text="46 masked" kind="signal" />
+      <Chip x={476} y={22} text="2,996 passed" kind="ok" />
       <text x={18} y={56} className="sc-th">action</text>
       <text x={120} y={56} className="sc-th">category</text>
       <text x={250} y={56} className="sc-th">agent → model</text>
