@@ -67,9 +67,10 @@ export function Landing({ mode, onEnter }: Props) {
           </div>
           <p className="landing-caption">
             <span className="landing-caption-tag">Example estate</span>
-            A customer-service triage agent hands refunds to a specialist, which
-            reaches tools through a gateway — the amber edge is the gateway
-            touching the finance ledger with no declaration behind it.
+            A customer-service triage agent hands refunds to a specialist. Its
+            tools are meant to go through the gateway, where Cedar decides — the
+            amber edge is the agent reaching the finance ledger directly, around
+            the gateway, with no declaration behind it.
           </p>
         </div>
       </main>
@@ -156,13 +157,34 @@ const EDGES: E[] = [
   { from: "b", to: "llm", origin: "both", delay: 0.9 },
   { from: "gw", to: "t1", origin: "declared", delay: 1.1 },
   { from: "gw", to: "t2", origin: "both", delay: 1.2 },
-  { from: "gw", to: "r", origin: "observed", delay: 2.2 }, // the alarm
+  // The alarm: the refunds agent reaches the ledger DIRECTLY, bypassing the
+  // gateway (and Cedar) entirely. Drift cannot originate at a default-deny
+  // gateway — a gateway only routes to registered targets — so the product's
+  // real signal is an agent going around it. This edge is drawn as a bypass.
+  { from: "b", to: "r", origin: "observed", delay: 2.2 },
 ];
 const NW = 132, NH = 40;
 const byId = Object.fromEntries(NODES.map((n) => [n.id, n]));
 
 function path(e: E): string {
   const a = byId[e.from], b = byId[e.to];
+  // The bypass edge: leave the agent from its bottom edge, swing out past
+  // the tools column, and drop onto the ledger from above — visibly going
+  // around the gateway rather than through it.
+  if (e.from === "b" && e.to === "r") {
+    // Exit the agent's RIGHT edge (clear of its LLM edge, which leaves the
+    // top-right), travel to a lane just past the tools column, run straight
+    // down that lane, then hook left onto the ledger's top edge.
+    const sx = a.x + NW / 2, sy = a.y + 10;
+    const lane = b.x + NW / 2 + 40;
+    const ex = b.x + NW / 2 - 22, ey = b.y - NH / 2;
+    return [
+      `M ${sx} ${sy}`,
+      `C ${sx + 70} ${sy}, ${lane} ${sy + 20}, ${lane} ${sy + 90}`, // out to the lane
+      `L ${lane} ${ey - 40}`,                                          // straight down it
+      `C ${lane} ${ey - 10}, ${ex + 16} ${ey - 4}, ${ex} ${ey}`,       // hook onto the ledger
+    ].join(" ");
+  }
   const x1 = a.x + NW / 2, y1 = a.y, x2 = b.x - NW / 2, y2 = b.y;
   const c = (x2 - x1) * 0.5;
   return `M ${x1} ${y1} C ${x1 + c} ${y1}, ${x2 - c} ${y2}, ${x2} ${y2}`;
