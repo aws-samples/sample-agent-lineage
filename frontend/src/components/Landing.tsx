@@ -130,18 +130,22 @@ function Beat({ icon, title, text, signal }: { icon: "agent" | "gateway" | "cost
    --------------------------------------------------------------------- */
 type N = { id: string; x: number; y: number; label: string; kind: "group" | "agent" | "gateway" | "tool" | "llm" | "resource" };
 /* A realistic estate: a customer-service desk whose triage agent hands
-   refunds to a specialist, which reaches tools through a gateway. The story
-   beat is the last edge — the gateway touching the ledger with no
-   declaration behind it. */
+   refunds to a specialist, which reaches its tools through a gateway. The
+   story beat is the last edge — the refunds agent reaching the finance
+   ledger DIRECTLY, with no gateway and no declaration behind it.
+
+   Layout: four columns. The ledger gets its own column at the far right,
+   level with the refunds agent, so the undeclared edge is one clean sweep
+   across the top that never crosses the gateway or the tools. */
 const NODES: N[] = [
-  { id: "g", x: 60, y: 210, label: "customer-service", kind: "group" },
-  { id: "a", x: 220, y: 210, label: "case-triage-agent", kind: "agent" },
-  { id: "b", x: 400, y: 110, label: "refunds-agent", kind: "agent" },
-  { id: "gw", x: 400, y: 310, label: "commerce-gateway", kind: "gateway" },
-  { id: "llm", x: 590, y: 60, label: "claude-sonnet", kind: "llm" },
-  { id: "t1", x: 590, y: 200, label: "issue-refund", kind: "tool" },
-  { id: "t2", x: 590, y: 300, label: "order-lookup", kind: "tool" },
-  { id: "r", x: 590, y: 390, label: "ledger-postgres", kind: "resource" },
+  { id: "g", x: 66, y: 200, label: "customer-service", kind: "group" },
+  { id: "a", x: 232, y: 200, label: "case-triage-agent", kind: "agent" },
+  { id: "b", x: 410, y: 100, label: "refunds-agent", kind: "agent" },
+  { id: "gw", x: 410, y: 300, label: "commerce-gateway", kind: "gateway" },
+  { id: "llm", x: 588, y: 36, label: "claude-sonnet", kind: "llm" },
+  { id: "t1", x: 588, y: 220, label: "issue-refund", kind: "tool" },
+  { id: "t2", x: 588, y: 300, label: "order-lookup", kind: "tool" },
+  { id: "r", x: 776, y: 130, label: "ledger-postgres", kind: "resource" },
 ];
 const COLOR: Record<N["kind"], string> = {
   group: "#8b5cf6", agent: "#2563eb", gateway: "#0891b2", tool: "#059669", llm: "#d97706", resource: "#dc2626",
@@ -168,23 +172,6 @@ const byId = Object.fromEntries(NODES.map((n) => [n.id, n]));
 
 function path(e: E): string {
   const a = byId[e.from], b = byId[e.to];
-  // The bypass edge: leave the agent from its bottom edge, swing out past
-  // the tools column, and drop onto the ledger from above — visibly going
-  // around the gateway rather than through it.
-  if (e.from === "b" && e.to === "r") {
-    // Exit the agent's RIGHT edge (clear of its LLM edge, which leaves the
-    // top-right), travel to a lane just past the tools column, run straight
-    // down that lane, then hook left onto the ledger's top edge.
-    const sx = a.x + NW / 2, sy = a.y + 10;
-    const lane = b.x + NW / 2 + 40;
-    const ex = b.x + NW / 2 - 22, ey = b.y - NH / 2;
-    return [
-      `M ${sx} ${sy}`,
-      `C ${sx + 70} ${sy}, ${lane} ${sy + 20}, ${lane} ${sy + 90}`, // out to the lane
-      `L ${lane} ${ey - 40}`,                                          // straight down it
-      `C ${lane} ${ey - 10}, ${ex + 16} ${ey - 4}, ${ex} ${ey}`,       // hook onto the ledger
-    ].join(" ");
-  }
   const x1 = a.x + NW / 2, y1 = a.y, x2 = b.x - NW / 2, y2 = b.y;
   const c = (x2 - x1) * 0.5;
   return `M ${x1} ${y1} C ${x1 + c} ${y1}, ${x2 - c} ${y2}, ${x2} ${y2}`;
@@ -192,7 +179,7 @@ function path(e: E): string {
 
 function HeroGraph() {
   return (
-    <svg className="hero-graph" viewBox="0 0 720 420" role="img" aria-label="Animated lineage graph">
+    <svg className="hero-graph" viewBox="0 0 900 350" role="img" aria-label="Animated lineage graph">
       <defs>
         <filter id="glow" x="-20%" y="-50%" width="140%" height="200%">
           <feGaussianBlur stdDeviation="3" result="b" />
