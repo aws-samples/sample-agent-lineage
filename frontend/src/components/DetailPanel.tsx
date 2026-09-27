@@ -32,7 +32,7 @@ import { RunsExplorer } from "./RunsExplorer";
 import { RunTimelineView } from "./RunTimelineView";
 import { Icon } from "./Icon";
 import { AnimatePresence, m } from "motion/react";
-import { AnimatedNumber, TabPill, usd2 } from "./Motion";
+import { AnimatedNumber, rowIn, TabPill, usd2 } from "./Motion";
 
 interface Props {
   node: GraphNode;
@@ -1072,8 +1072,8 @@ export function DetailPanel({ node, graph, since, until, onFocus, onClose }: Pro
             shares the same run ID.
           </p>
           <ul>
-            {runs.slice(0, 5).map((r) => (
-              <li key={r.run_id}>
+            {runs.slice(0, 5).map((r, idx) => (
+              <m.li key={r.run_id} className="row-in" {...rowIn(idx)}>
                 <button className="run-row" onClick={() => toggleRun(r.run_id)}>
                   <span className={`run-state run-${r.state.toLowerCase()}`}>{r.state}</span>{" "}
                   <code>{r.run_id.slice(0, 8)}</code>
@@ -1092,7 +1092,7 @@ export function DetailPanel({ node, graph, since, until, onFocus, onClose }: Pro
                   ) : (
                     <p className="hint">loading trajectory…</p>
                   ))}
-              </li>
+              </m.li>
             ))}
           </ul>
           <button className="focus-btn" onClick={() => setShowExplorer(true)}>

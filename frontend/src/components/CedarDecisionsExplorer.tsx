@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { fetchCedarDecisions } from "../api";
 import type { CedarDecision } from "../types";
 import { Icon } from "./Icon";
-import { ModalFrame, TabPill } from "./Motion";
+import { m } from "motion/react";
+import { ModalFrame, rowIn, TabPill } from "./Motion";
 
 const FILTERS = ["ALL", "ALLOW", "DENY"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -81,8 +82,8 @@ export function CedarDecisionsExplorer({ gatewayId, gatewayName, since, until, o
             {pageRows.length === 0 && (
               <tr><td colSpan={6} className="runs-empty">no decisions</td></tr>
             )}
-            {pageRows.map((d) => (
-              <tr key={d.id}>
+            {pageRows.map((d, idx) => (
+              <m.tr key={d.id} className="row-in" {...rowIn(idx)}>
                 <td>
                   <span className={d.decision === "DENY" ? "deny-chip" : "allow-chip"}>
                     {d.decision}
@@ -93,7 +94,7 @@ export function CedarDecisionsExplorer({ gatewayId, gatewayName, since, until, o
                 <td><code>{d.policy_id || "—"}</code></td>
                 <td><code>{d.run_id.slice(0, 8)}</code></td>
                 <td>{d.decided_at ? new Date(d.decided_at).toLocaleString() : "—"}</td>
-              </tr>
+              </m.tr>
             ))}
           </tbody>
         </table>

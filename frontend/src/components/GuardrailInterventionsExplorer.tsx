@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchGuardrailInterventions } from "../api";
 import type { GuardrailIntervention } from "../types";
 import { Icon } from "./Icon";
-import { ModalFrame, TabPill } from "./Motion";
+import { m } from "motion/react";
+import { ModalFrame, rowIn, TabPill } from "./Motion";
 
 const FILTERS = ["ALL", "BLOCKED", "MASKED", "PASSED"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -112,8 +113,8 @@ export function GuardrailInterventionsExplorer({ guardrailId, guardrailName, sin
             {pageRows.length === 0 && (
               <tr><td colSpan={6} className="runs-empty">no interventions</td></tr>
             )}
-            {pageRows.map((i) => (
-              <tr key={i.id}>
+            {pageRows.map((i, idx) => (
+              <m.tr key={i.id} className="row-in" {...rowIn(idx)}>
                 <td>
                   <span className={ACTION_CHIP[i.action] ?? "deny-chip"}>{i.action}</span>
                 </td>
@@ -122,7 +123,7 @@ export function GuardrailInterventionsExplorer({ guardrailId, guardrailName, sin
                 <td>{i.llm_name || "—"}</td>
                 <td><code>{i.run_id.slice(0, 8)}</code></td>
                 <td>{i.occurred_at ? new Date(i.occurred_at).toLocaleString() : "—"}</td>
-              </tr>
+              </m.tr>
             ))}
           </tbody>
         </table>

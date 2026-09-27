@@ -159,6 +159,9 @@ button, [role="tab"], a, .chip, .tag, .pill, summary, .catalog-dropdown li butto
     transform var(--dur-fast) var(--ease-out);
 }
 button:not(:disabled):active, .run-row:active, .cat-tab:active { transform: translateY(1px); }
+/* Rows Motion eases in: keep the hover colour transition, but leave opacity
+   and transform to Motion so a CSS transition doesn't lag every frame. */
+.row-in { transition-property: background-color, color, border-color, box-shadow; }
 button:disabled { cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }

@@ -24,6 +24,22 @@ export function TabPill({ layoutId }: { layoutId: string }) {
   );
 }
 
+/* ---- list entry ----------------------------------------------------- */
+
+/**
+ * Props for a list/table row that eases in when it mounts, staggered by its
+ * index (capped, so long pages still settle in ~0.25 s). Rows keep their
+ * key across re-renders, so only genuinely new rows (a new page, filter or
+ * window) animate. Pair with className "row-in".
+ */
+export function rowIn(i: number) {
+  return {
+    initial: { opacity: 0, y: 4 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.2, delay: Math.min(i, 12) * 0.018 },
+  } as const;
+}
+
 /* ---- modal shell ---------------------------------------------------- */
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;

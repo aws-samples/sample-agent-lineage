@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
+import { m } from "motion/react";
 import { cloudWatchTraceUrl, fetchRuns, fetchRunTimeline } from "../api";
 import type { Run, RunTimeline } from "../types";
 import { RunTimelineView } from "./RunTimelineView";
-import { AnimatedNumber, ModalFrame, TabPill } from "./Motion";
+import { AnimatedNumber, ModalFrame, rowIn, TabPill } from "./Motion";
 
 const PAGE_SIZE = 25;
 const STATES = ["ALL", "COMPLETE", "FAIL", "RUNNING"] as const;
@@ -116,11 +117,11 @@ export function RunsExplorer({ agentId, agentName, since, until, onClose }: Prop
               <tr><td colSpan={8} className="runs-empty">no runs</td></tr>
             )}
             {!loading &&
-              runs.map((r) => (
-                <>
-                  <tr
-                    key={r.run_id}
-                    className={`runs-row ${expanded === r.run_id ? "runs-row-open" : ""}`}
+              runs.map((r, idx) => (
+                <Fragment key={r.run_id}>
+                  <m.tr
+                    {...rowIn(idx)}
+                    className={`runs-row row-in ${expanded === r.run_id ? "runs-row-open" : ""}`}
                     onClick={() => toggle(r.run_id)}
                   >
                     <td className="expand-caret">{expanded === r.run_id ? "▾" : "▸"}</td>
@@ -141,9 +142,9 @@ export function RunsExplorer({ agentId, agentName, since, until, onClose }: Prop
                       {r.input_tokens.toLocaleString()} / {r.output_tokens.toLocaleString()}
                     </td>
                     <td className="runs-cost">${r.cost_usd.toFixed(4)}</td>
-                  </tr>
+                  </m.tr>
                   {expanded === r.run_id && (
-                    <tr key={`${r.run_id}-detail`}>
+                    <tr>
                       <td colSpan={8} className="runs-detail-cell">
                         {timeline ? (
                           <RunTimelineView
@@ -156,7 +157,7 @@ export function RunsExplorer({ agentId, agentName, since, until, onClose }: Prop
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
           </tbody>
         </table>
