@@ -8,6 +8,7 @@ import { CatalogSearch } from "./components/CatalogSearch";
 import { DetailPanel } from "./components/DetailPanel";
 import { Icon } from "./components/Icon";
 import { LineageGraph } from "./components/LineageGraph";
+import { AnimatePresence, m } from "motion/react";
 import { AnimatedNumber, usd2 } from "./components/Motion";
 import { LogoLockup } from "./components/Logo";
 import { ThemeToggle } from "./components/ThemeToggle";
@@ -217,15 +218,18 @@ export default function App() {
         )}
       </header>
 
-      {showAwsModal && (
-        <AwsConnectModal
-          onClose={() => setShowAwsModal(false)}
-          onSynced={() => setRefreshKey((k) => k + 1)}
-        />
-      )}
-      {showRequestsModal && (
-        <AccessRequestsModal onClose={() => setShowRequestsModal(false)} />
-      )}
+      <AnimatePresence>
+        {showAwsModal && (
+          <AwsConnectModal
+            key="aws"
+            onClose={() => setShowAwsModal(false)}
+            onSynced={() => setRefreshKey((k) => k + 1)}
+          />
+        )}
+        {showRequestsModal && (
+          <AccessRequestsModal key="requests" onClose={() => setShowRequestsModal(false)} />
+        )}
+      </AnimatePresence>
 
       {/* Command strip: the search is the primary action, scoped by the
           focus/clear controls beside it. Sits directly on the map ground. */}
@@ -261,8 +265,16 @@ export default function App() {
         )}
         {/* Custom time range: scopes the graph's observed traffic and every
             time-bound metric. Sits with the search — both scope what you see. */}
+        <AnimatePresence initial={false}>
         {timeframe === "custom" && (
-          <fieldset className="range-picker" aria-label="Custom time range">
+          <m.fieldset
+            key="range"
+            className="range-picker"
+            aria-label="Custom time range"
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10, transition: { duration: 0.12 } }}
+          >
             <label>
               <span>From</span>
               <input
@@ -283,13 +295,16 @@ export default function App() {
                 onChange={(e) => e.target.value && setCustomTo(e.target.value)}
               />
             </label>
-          </fieldset>
+          </m.fieldset>
         )}
+        </AnimatePresence>
       </div>
 
       <div className="stage">
+        <AnimatePresence>
         {selected && graph && (
           <DetailPanel
+            key="detail" // one panel instance: switching nodes updates in place
             node={selected}
             graph={graph}
             since={since}
@@ -298,6 +313,7 @@ export default function App() {
             onClose={() => setSelected(null)}
           />
         )}
+        </AnimatePresence>
 
         <main className="canvas">
           {(noAccess || showRequestForm) ? (

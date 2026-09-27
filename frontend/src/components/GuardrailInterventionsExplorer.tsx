@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchGuardrailInterventions } from "../api";
 import type { GuardrailIntervention } from "../types";
 import { Icon } from "./Icon";
-import { TabPill } from "./Motion";
+import { ModalFrame, TabPill } from "./Motion";
 
 const FILTERS = ["ALL", "BLOCKED", "MASKED", "PASSED"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -52,106 +52,99 @@ export function GuardrailInterventionsExplorer({ guardrailId, guardrailName, sin
   const countOf = (action: string) => interventions.filter((i) => i.action === action).length;
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div
-        className="modal"
-        role="dialog"
-        aria-label={`Guardrail interventions for ${guardrailName}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal-header">
-          <div>
-            <h2><Icon name="guardrail" size={18} /> Guardrail interventions · {guardrailName}</h2>
-            <p className="hint">
-              Every check this guardrail performed on model traffic: which agent's
-              call was blocked, masked or passed, in which category, and during
-              which run — full traceability for audit.
-            </p>
-          </div>
-          <button className="modal-close" aria-label="Close" onClick={onClose}>×</button>
+    <ModalFrame label={`Guardrail interventions for ${guardrailName}`} onClose={onClose}>
+      <div className="modal-header">
+        <div>
+          <h2><Icon name="guardrail" size={18} /> Guardrail interventions · {guardrailName}</h2>
+          <p className="hint">
+            Every check this guardrail performed on model traffic: which agent's
+            call was blocked, masked or passed, in which category, and during
+            which run — full traceability for audit.
+          </p>
         </div>
-
-        <div className="runs-toolbar">
-          {FILTERS.map((f) => (
-            <button
-              key={f}
-              className={`tab ${filter === f ? "tab-active" : ""}`}
-              onClick={() => { setFilter(f); setPage(0); }}
-            >
-              {filter === f && <TabPill layoutId="guardrail-filter-pill" />}
-              <span className="tab-label">{f.toLowerCase()}</span>
-            </button>
-          ))}
-          {categories.length > 0 && (
-            <select
-              className="category-select"
-              aria-label="Filter by category"
-              value={category}
-              onChange={(e) => { setCategory(e.target.value); setPage(0); }}
-            >
-              <option value="">all categories</option>
-              {categories.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          )}
-          <span className="runs-total">
-            <span className="deny-chip">{countOf("BLOCKED")} blocked</span>{" "}
-            <span className="mask-chip">{countOf("MASKED")} masked</span>{" "}
-            <span className="allow-chip">{countOf("PASSED")} passed</span>
-          </span>
-        </div>
-
-        <div className="runs-table-wrap">
-          <table className="runs-table">
-            <thead>
-              <tr>
-                <th>Action</th>
-                <th>Category</th>
-                <th>Agent</th>
-                <th>Model</th>
-                <th>Run</th>
-                <th>Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageRows.length === 0 && (
-                <tr><td colSpan={6} className="runs-empty">no interventions</td></tr>
-              )}
-              {pageRows.map((i) => (
-                <tr key={i.id}>
-                  <td>
-                    <span className={ACTION_CHIP[i.action] ?? "deny-chip"}>{i.action}</span>
-                  </td>
-                  <td>{i.category ? <span className="tag">{i.category}</span> : "—"}</td>
-                  <td><b>{i.agent_name}</b></td>
-                  <td>{i.llm_name || "—"}</td>
-                  <td><code>{i.run_id.slice(0, 8)}</code></td>
-                  <td>{i.occurred_at ? new Date(i.occurred_at).toLocaleString() : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="runs-pagination">
-          <button
-            className="focus-btn"
-            disabled={page === 0}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            ← Prev
-          </button>
-          <span>page {page + 1} of {pages}</span>
-          <button
-            className="focus-btn"
-            disabled={page + 1 >= pages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next →
-          </button>
-        </div>
+        <button className="modal-close" aria-label="Close" onClick={onClose}>×</button>
       </div>
-    </div>
+
+      <div className="runs-toolbar">
+        {FILTERS.map((f) => (
+          <button
+            key={f}
+            className={`tab ${filter === f ? "tab-active" : ""}`}
+            onClick={() => { setFilter(f); setPage(0); }}
+          >
+            {filter === f && <TabPill layoutId="guardrail-filter-pill" />}
+            <span className="tab-label">{f.toLowerCase()}</span>
+          </button>
+        ))}
+        {categories.length > 0 && (
+          <select
+            className="category-select"
+            aria-label="Filter by category"
+            value={category}
+            onChange={(e) => { setCategory(e.target.value); setPage(0); }}
+          >
+            <option value="">all categories</option>
+            {categories.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        )}
+        <span className="runs-total">
+          <span className="deny-chip">{countOf("BLOCKED")} blocked</span>{" "}
+          <span className="mask-chip">{countOf("MASKED")} masked</span>{" "}
+          <span className="allow-chip">{countOf("PASSED")} passed</span>
+        </span>
+      </div>
+
+      <div className="runs-table-wrap">
+        <table className="runs-table">
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>Category</th>
+              <th>Agent</th>
+              <th>Model</th>
+              <th>Run</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pageRows.length === 0 && (
+              <tr><td colSpan={6} className="runs-empty">no interventions</td></tr>
+            )}
+            {pageRows.map((i) => (
+              <tr key={i.id}>
+                <td>
+                  <span className={ACTION_CHIP[i.action] ?? "deny-chip"}>{i.action}</span>
+                </td>
+                <td>{i.category ? <span className="tag">{i.category}</span> : "—"}</td>
+                <td><b>{i.agent_name}</b></td>
+                <td>{i.llm_name || "—"}</td>
+                <td><code>{i.run_id.slice(0, 8)}</code></td>
+                <td>{i.occurred_at ? new Date(i.occurred_at).toLocaleString() : "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="runs-pagination">
+        <button
+          className="focus-btn"
+          disabled={page === 0}
+          onClick={() => setPage((p) => p - 1)}
+        >
+          ← Prev
+        </button>
+        <span>page {page + 1} of {pages}</span>
+        <button
+          className="focus-btn"
+          disabled={page + 1 >= pages}
+          onClick={() => setPage((p) => p + 1)}
+        >
+          Next →
+        </button>
+      </div>
+    </ModalFrame>
   );
 }

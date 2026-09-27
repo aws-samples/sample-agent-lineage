@@ -1,6 +1,6 @@
 // Shared Motion primitives. Everything renders `m.*` components (LazyMotion
 // is strict) and relies on the root MotionConfig for reduced-motion handling.
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { m, useReducedMotion } from "motion/react";
 
 /** Snappy, near-critically-damped spring for indicators that travel. */
@@ -21,6 +21,59 @@ export function TabPill({ layoutId }: { layoutId: string }) {
       aria-hidden
       transition={SPRING_SNAPPY}
     />
+  );
+}
+
+/* ---- modal shell ---------------------------------------------------- */
+
+const EASE_OUT = [0.16, 1, 0.3, 1] as const;
+
+/**
+ * Backdrop + dialog with enter AND exit motion. Render it under an
+ * <AnimatePresence> in the parent so closing plays the exit before unmount.
+ * Closes on backdrop click, the header's × (caller-owned) and Escape.
+ */
+export function ModalFrame({
+  className = "modal",
+  label,
+  onClose,
+  children,
+}: {
+  className?: string;
+  label: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <m.div
+      className="modal-backdrop"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.16 }}
+    >
+      <m.div
+        className={className}
+        role="dialog"
+        aria-label={label}
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, y: 8, scale: 0.985 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 4, scale: 0.99, transition: { duration: 0.12 } }}
+        transition={{ duration: 0.22, ease: EASE_OUT }}
+      >
+        {children}
+      </m.div>
+    </m.div>
   );
 }
 

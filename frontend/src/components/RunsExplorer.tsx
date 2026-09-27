@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { cloudWatchTraceUrl, fetchRuns, fetchRunTimeline } from "../api";
 import type { Run, RunTimeline } from "../types";
 import { RunTimelineView } from "./RunTimelineView";
-import { AnimatedNumber, TabPill } from "./Motion";
+import { AnimatedNumber, ModalFrame, TabPill } from "./Motion";
 
 const PAGE_SIZE = 25;
 const STATES = ["ALL", "COMPLETE", "FAIL", "RUNNING"] as const;
@@ -67,125 +67,118 @@ export function RunsExplorer({ agentId, agentName, since, until, onClose }: Prop
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div
-        className="modal"
-        role="dialog"
-        aria-label={`Runs for ${agentName}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal-header">
-          <div>
-            <h2>Runs · {agentName}</h2>
-            <p className="hint">
-              A run is one end-to-end agent invocation (session / task execution).
-              All sub-agent, tool, LLM and gateway activity under the same run ID
-              belongs to that invocation.
-            </p>
-          </div>
-          <button className="modal-close" aria-label="Close" onClick={onClose}>×</button>
+    <ModalFrame label={`Runs for ${agentName}`} onClose={onClose}>
+      <div className="modal-header">
+        <div>
+          <h2>Runs · {agentName}</h2>
+          <p className="hint">
+            A run is one end-to-end agent invocation (session / task execution).
+            All sub-agent, tool, LLM and gateway activity under the same run ID
+            belongs to that invocation.
+          </p>
         </div>
-
-        <div className="runs-toolbar">
-          {STATES.map((s) => (
-            <button
-              key={s}
-              className={`tab ${state === s ? "tab-active" : ""}`}
-              onClick={() => { setState(s); setPage(0); setExpanded(null); }}
-            >
-              {state === s && <TabPill layoutId="runs-filter-pill" />}
-              <span className="tab-label">{s.toLowerCase()}</span>
-            </button>
-          ))}
-          <span className="runs-total"><AnimatedNumber value={total} /> runs</span>
-        </div>
-
-        <div className="runs-table-wrap">
-          <table className="runs-table">
-            <thead>
-              <tr>
-                <th></th>
-                <th>State</th>
-                <th>Run</th>
-                <th>Version</th>
-                <th>Started</th>
-                <th>Duration</th>
-                <th>Tokens (in/out)</th>
-                <th>Cost</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && (
-                <tr><td colSpan={8} className="runs-empty">loading…</td></tr>
-              )}
-              {!loading && runs.length === 0 && (
-                <tr><td colSpan={8} className="runs-empty">no runs</td></tr>
-              )}
-              {!loading &&
-                runs.map((r) => (
-                  <>
-                    <tr
-                      key={r.run_id}
-                      className={`runs-row ${expanded === r.run_id ? "runs-row-open" : ""}`}
-                      onClick={() => toggle(r.run_id)}
-                    >
-                      <td className="expand-caret">{expanded === r.run_id ? "▾" : "▸"}</td>
-                      <td>
-                        <span className={`run-state run-${r.state.toLowerCase()}`}>
-                          {r.state}
-                        </span>
-                      </td>
-                      <td><code>{r.run_id.slice(0, 8)}</code></td>
-                      <td>
-                        {typeof r.facets.agent_version === "string"
-                          ? `v${r.facets.agent_version}`
-                          : "—"}
-                      </td>
-                      <td>{r.started_at ? new Date(r.started_at).toLocaleString() : "—"}</td>
-                      <td>{duration(r)}</td>
-                      <td>
-                        {r.input_tokens.toLocaleString()} / {r.output_tokens.toLocaleString()}
-                      </td>
-                      <td className="runs-cost">${r.cost_usd.toFixed(4)}</td>
-                    </tr>
-                    {expanded === r.run_id && (
-                      <tr key={`${r.run_id}-detail`}>
-                        <td colSpan={8} className="runs-detail-cell">
-                          {timeline ? (
-                            <RunTimelineView
-                              timeline={timeline}
-                              traceUrl={cloudWatchTraceUrl(agentId, r.run_id)}
-                            />
-                          ) : (
-                            <span className="hint">loading trajectory…</span>
-                          )}
-                        </td>
-                      </tr>
-                    )}
-                  </>
-                ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="runs-pagination">
-          <button
-            className="focus-btn"
-            disabled={page === 0}
-            onClick={() => { setPage((p) => p - 1); setExpanded(null); }}
-          >
-            ← Prev
-          </button>
-          <span>page {page + 1} of {pages}</span>
-          <button
-            className="focus-btn"
-            disabled={page + 1 >= pages}
-            onClick={() => { setPage((p) => p + 1); setExpanded(null); }}
-          >
-            Next →
-          </button>
-        </div>
+        <button className="modal-close" aria-label="Close" onClick={onClose}>×</button>
       </div>
-    </div>
+
+      <div className="runs-toolbar">
+        {STATES.map((s) => (
+          <button
+            key={s}
+            className={`tab ${state === s ? "tab-active" : ""}`}
+            onClick={() => { setState(s); setPage(0); setExpanded(null); }}
+          >
+            {state === s && <TabPill layoutId="runs-filter-pill" />}
+            <span className="tab-label">{s.toLowerCase()}</span>
+          </button>
+        ))}
+        <span className="runs-total"><AnimatedNumber value={total} /> runs</span>
+      </div>
+
+      <div className="runs-table-wrap">
+        <table className="runs-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>State</th>
+              <th>Run</th>
+              <th>Version</th>
+              <th>Started</th>
+              <th>Duration</th>
+              <th>Tokens (in/out)</th>
+              <th>Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading && (
+              <tr><td colSpan={8} className="runs-empty">loading…</td></tr>
+            )}
+            {!loading && runs.length === 0 && (
+              <tr><td colSpan={8} className="runs-empty">no runs</td></tr>
+            )}
+            {!loading &&
+              runs.map((r) => (
+                <>
+                  <tr
+                    key={r.run_id}
+                    className={`runs-row ${expanded === r.run_id ? "runs-row-open" : ""}`}
+                    onClick={() => toggle(r.run_id)}
+                  >
+                    <td className="expand-caret">{expanded === r.run_id ? "▾" : "▸"}</td>
+                    <td>
+                      <span className={`run-state run-${r.state.toLowerCase()}`}>
+                        {r.state}
+                      </span>
+                    </td>
+                    <td><code>{r.run_id.slice(0, 8)}</code></td>
+                    <td>
+                      {typeof r.facets.agent_version === "string"
+                        ? `v${r.facets.agent_version}`
+                        : "—"}
+                    </td>
+                    <td>{r.started_at ? new Date(r.started_at).toLocaleString() : "—"}</td>
+                    <td>{duration(r)}</td>
+                    <td>
+                      {r.input_tokens.toLocaleString()} / {r.output_tokens.toLocaleString()}
+                    </td>
+                    <td className="runs-cost">${r.cost_usd.toFixed(4)}</td>
+                  </tr>
+                  {expanded === r.run_id && (
+                    <tr key={`${r.run_id}-detail`}>
+                      <td colSpan={8} className="runs-detail-cell">
+                        {timeline ? (
+                          <RunTimelineView
+                            timeline={timeline}
+                            traceUrl={cloudWatchTraceUrl(agentId, r.run_id)}
+                          />
+                        ) : (
+                          <span className="hint">loading trajectory…</span>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </>
+              ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="runs-pagination">
+        <button
+          className="focus-btn"
+          disabled={page === 0}
+          onClick={() => { setPage((p) => p - 1); setExpanded(null); }}
+        >
+          ← Prev
+        </button>
+        <span>page {page + 1} of {pages}</span>
+        <button
+          className="focus-btn"
+          disabled={page + 1 >= pages}
+          onClick={() => { setPage((p) => p + 1); setExpanded(null); }}
+        >
+          Next →
+        </button>
+      </div>
+    </ModalFrame>
   );
 }

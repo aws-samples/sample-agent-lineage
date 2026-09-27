@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { syncAws, type AwsSyncResult } from "../api";
+import { ModalFrame } from "./Motion";
 
 interface Props {
   onClose: () => void;
@@ -38,99 +39,92 @@ export function AwsConnectModal({ onClose, onSynced }: Props) {
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div
-        className="modal aws-modal"
-        role="dialog"
-        aria-label="Connect AWS account"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal-header">
-          <div>
-            <h2>Connect AWS account</h2>
-            <p className="hint">
-              Pulls AgentCore Runtime agents, Gateways + targets, Identity,
-              Bedrock Guardrails and Agent Registry records (read-only). Provide a
-              local AWS profile or a role ARN to assume; the account ID is
-              discovered automatically.
-            </p>
-          </div>
-          <button className="modal-close" aria-label="Close" onClick={onClose}>×</button>
+    <ModalFrame className="modal aws-modal" label="Connect AWS account" onClose={onClose}>
+      <div className="modal-header">
+        <div>
+          <h2>Connect AWS account</h2>
+          <p className="hint">
+            Pulls AgentCore Runtime agents, Gateways + targets, Identity,
+            Bedrock Guardrails and Agent Registry records (read-only). Provide a
+            local AWS profile or a role ARN to assume; the account ID is
+            discovered automatically.
+          </p>
         </div>
-
-        <div className="aws-form">
-          <label>
-            Region
-            <input value={region} onChange={(e) => setRegion(e.target.value)} />
-          </label>
-          <label>
-            AWS profile <small>(optional — default credentials chain if empty)</small>
-            <input
-              value={profile}
-              placeholder="e.g. platform-readonly"
-              onChange={(e) => setProfile(e.target.value)}
-            />
-          </label>
-          <label>
-            Role ARN to assume <small>(optional)</small>
-            <input
-              value={roleArn}
-              placeholder="arn:aws:iam::123456789012:role/agent-lineage-readonly"
-              onChange={(e) => setRoleArn(e.target.value)}
-            />
-          </label>
-          {roleArn && (
-            <label>
-              External ID <small>(optional — defaults to this deployment's value; must match the spoke role's sts:ExternalId condition)</small>
-              <input
-                value={externalId}
-                placeholder="deployment external id"
-                onChange={(e) => setExternalId(e.target.value)}
-              />
-            </label>
-          )}
-          <button className="focus-btn aws-sync-btn" disabled={busy} onClick={run}>
-            {busy ? "Syncing…" : "Sync account"}
-          </button>
-        </div>
-
-        {error && <div className="error aws-result">{error}</div>}
-
-        {result && (
-          <div className="aws-result">
-            <div className="aws-result-head">
-              Synced <b>{result.account_id}</b> / {result.region} → namespace{" "}
-              <code>{result.namespace}</code>
-            </div>
-            <table className="cost-table">
-              <thead>
-                <tr><th>Module</th><th>Result</th></tr>
-              </thead>
-              <tbody>
-                {Object.entries(result.modules).map(([name, m]) => (
-                  <tr key={name}>
-                    <td>{name.replace(/_/g, " ")}</td>
-                    <td>
-                      {m.ok ? (
-                        <span className="allow-chip">
-                          {Object.entries(m)
-                            .filter(([k]) => k !== "ok")
-                            .map(([k, v]) => `${v} ${k.replace(/_/g, " ")}`)
-                            .join(", ") || "ok"}
-                        </span>
-                      ) : (
-                        <span className="deny-chip" title={String(m.error)}>
-                          {String(m.error).slice(0, 80)}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <button className="modal-close" aria-label="Close" onClick={onClose}>×</button>
       </div>
-    </div>
+
+      <div className="aws-form">
+        <label>
+          Region
+          <input value={region} onChange={(e) => setRegion(e.target.value)} />
+        </label>
+        <label>
+          AWS profile <small>(optional — default credentials chain if empty)</small>
+          <input
+            value={profile}
+            placeholder="e.g. platform-readonly"
+            onChange={(e) => setProfile(e.target.value)}
+          />
+        </label>
+        <label>
+          Role ARN to assume <small>(optional)</small>
+          <input
+            value={roleArn}
+            placeholder="arn:aws:iam::123456789012:role/agent-lineage-readonly"
+            onChange={(e) => setRoleArn(e.target.value)}
+          />
+        </label>
+        {roleArn && (
+          <label>
+            External ID <small>(optional — defaults to this deployment's value; must match the spoke role's sts:ExternalId condition)</small>
+            <input
+              value={externalId}
+              placeholder="deployment external id"
+              onChange={(e) => setExternalId(e.target.value)}
+            />
+          </label>
+        )}
+        <button className="focus-btn aws-sync-btn" disabled={busy} onClick={run}>
+          {busy ? "Syncing…" : "Sync account"}
+        </button>
+      </div>
+
+      {error && <div className="error aws-result">{error}</div>}
+
+      {result && (
+        <div className="aws-result">
+          <div className="aws-result-head">
+            Synced <b>{result.account_id}</b> / {result.region} → namespace{" "}
+            <code>{result.namespace}</code>
+          </div>
+          <table className="cost-table">
+            <thead>
+              <tr><th>Module</th><th>Result</th></tr>
+            </thead>
+            <tbody>
+              {Object.entries(result.modules).map(([name, m]) => (
+                <tr key={name}>
+                  <td>{name.replace(/_/g, " ")}</td>
+                  <td>
+                    {m.ok ? (
+                      <span className="allow-chip">
+                        {Object.entries(m)
+                          .filter(([k]) => k !== "ok")
+                          .map(([k, v]) => `${v} ${k.replace(/_/g, " ")}`)
+                          .join(", ") || "ok"}
+                      </span>
+                    ) : (
+                      <span className="deny-chip" title={String(m.error)}>
+                        {String(m.error).slice(0, 80)}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </ModalFrame>
   );
 }

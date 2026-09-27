@@ -31,6 +31,7 @@ import { GuardrailInterventionsExplorer } from "./GuardrailInterventionsExplorer
 import { RunsExplorer } from "./RunsExplorer";
 import { RunTimelineView } from "./RunTimelineView";
 import { Icon } from "./Icon";
+import { AnimatePresence, m } from "motion/react";
 import { AnimatedNumber, TabPill, usd2 } from "./Motion";
 
 interface Props {
@@ -388,7 +389,14 @@ export function DetailPanel({ node, graph, since, until, onFocus, onClose }: Pro
   ];
 
   return (
-    <aside className="detail-panel" aria-label={`${meta.label} details`}>
+    <m.aside
+      className="detail-panel"
+      aria-label={`${meta.label} details`}
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -10, transition: { duration: 0.14 } }}
+      transition={{ duration: 0.22 }}
+    >
       {/* Header + tabs pin together as ONE sticky unit, so the tab bar always
           sits directly beneath the header regardless of its height and no
           content can scroll up between them. */}
@@ -532,13 +540,15 @@ export function DetailPanel({ node, graph, since, until, onFocus, onClose }: Pro
         </button>
       )}
 
-      {showEvalExplorer && (
-        <EvaluationsExplorer
-          agentId={node.id}
-          agentName={node.name}
-          onClose={() => setShowEvalExplorer(false)}
-        />
-      )}
+      <AnimatePresence>
+        {showEvalExplorer && (
+          <EvaluationsExplorer
+            agentId={node.id}
+            agentName={node.name}
+            onClose={() => setShowEvalExplorer(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {tab === "governance" && evals.some((e) => e.eval_type !== "online") && (
         <section>
@@ -618,13 +628,15 @@ export function DetailPanel({ node, graph, since, until, onFocus, onClose }: Pro
         </section>
       )}
 
-      {showToolsExplorer && (
-        <GatewayToolsExplorer
-          gateway={node}
-          graph={graph}
-          onClose={() => setShowToolsExplorer(false)}
-        />
-      )}
+      <AnimatePresence>
+        {showToolsExplorer && (
+          <GatewayToolsExplorer
+            gateway={node}
+            graph={graph}
+            onClose={() => setShowToolsExplorer(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {tab === "governance" && isGateway && decisions.length > 0 && (
         <section>
@@ -669,15 +681,17 @@ export function DetailPanel({ node, graph, since, until, onFocus, onClose }: Pro
         </section>
       )}
 
-      {showCedarExplorer && (
-        <CedarDecisionsExplorer
-          gatewayId={node.id}
-          gatewayName={node.name}
-          since={since}
-          until={until}
-          onClose={() => setShowCedarExplorer(false)}
-        />
-      )}
+      <AnimatePresence>
+        {showCedarExplorer && (
+          <CedarDecisionsExplorer
+            gatewayId={node.id}
+            gatewayName={node.name}
+            since={since}
+            until={until}
+            onClose={() => setShowCedarExplorer(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {tab === "overview" && (runVersions.size > 0 || Array.isArray(node.facets.versions)) && (
         <section>
@@ -941,15 +955,17 @@ export function DetailPanel({ node, graph, since, until, onFocus, onClose }: Pro
         </section>
       )}
 
-      {showInterventionsExplorer && (
-        <GuardrailInterventionsExplorer
-          guardrailId={node.id}
-          guardrailName={node.name}
-          since={since}
-          until={until}
-          onClose={() => setShowInterventionsExplorer(false)}
-        />
-      )}
+      <AnimatePresence>
+        {showInterventionsExplorer && (
+          <GuardrailInterventionsExplorer
+            guardrailId={node.id}
+            guardrailName={node.name}
+            since={since}
+            until={until}
+            onClose={() => setShowInterventionsExplorer(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {tab === "overview" && node.node_type === "identity" && (
         <section>
@@ -1085,15 +1101,17 @@ export function DetailPanel({ node, graph, since, until, onFocus, onClose }: Pro
         </section>
       )}
 
-      {showExplorer && (
-        <RunsExplorer
-          agentId={node.id}
-          agentName={node.name}
-          since={since}
-          until={until}
-          onClose={() => setShowExplorer(false)}
-        />
-      )}
-    </aside>
+      <AnimatePresence>
+        {showExplorer && (
+          <RunsExplorer
+            agentId={node.id}
+            agentName={node.name}
+            since={since}
+            until={until}
+            onClose={() => setShowExplorer(false)}
+          />
+        )}
+      </AnimatePresence>
+    </m.aside>
   );
 }
