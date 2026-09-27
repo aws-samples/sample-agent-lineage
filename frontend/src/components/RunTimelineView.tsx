@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { RunTimeline } from "../types";
 import { RunTrajectoryGraph } from "./RunTrajectoryGraph";
 import { Icon } from "./Icon";
+import { TabPill } from "./Motion";
 
 interface Props {
   timeline: RunTimeline;
@@ -13,6 +14,7 @@ interface Props {
  *  raw step list, with the run's own cost rollup and failure details. */
 export function RunTimelineView({ timeline, traceUrl }: Props) {
   const [view, setView] = useState<"graph" | "steps">("graph");
+  const tabGroup = useId();
   const firstError = timeline.steps.find((s) => s.error)?.error;
 
   return (
@@ -29,18 +31,17 @@ export function RunTimelineView({ timeline, traceUrl }: Props) {
           </a>
         )}
         <div className="tab-bar timeline-tabs">
-          <button
-            className={`tab ${view === "graph" ? "tab-active" : ""}`}
-            onClick={() => setView("graph")}
-          >
-            Graph
-          </button>
-          <button
-            className={`tab ${view === "steps" ? "tab-active" : ""}`}
-            onClick={() => setView("steps")}
-          >
-            Steps
-          </button>
+          {(["graph", "steps"] as const).map((v) => (
+            <button
+              key={v}
+              className={`tab ${view === v ? "tab-active" : ""}`}
+              aria-pressed={view === v}
+              onClick={() => setView(v)}
+            >
+              {view === v && <TabPill layoutId={`${tabGroup}-pill`} />}
+              <span className="tab-label">{v === "graph" ? "Graph" : "Steps"}</span>
+            </button>
+          ))}
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import {
   cloudWatchTraceUrl,
   fetchCallerCosts,
@@ -31,6 +31,7 @@ import { GuardrailInterventionsExplorer } from "./GuardrailInterventionsExplorer
 import { RunsExplorer } from "./RunsExplorer";
 import { RunTimelineView } from "./RunTimelineView";
 import { Icon } from "./Icon";
+import { TabPill } from "./Motion";
 
 interface Props {
   node: GraphNode;
@@ -249,6 +250,7 @@ export function DetailPanel({ node, graph, since, until, onFocus, onClose }: Pro
   const [showAllInterventions, setShowAllInterventions] = useState(false);
   const [showInterventionsExplorer, setShowInterventionsExplorer] = useState(false);
   const [tab, setTab] = useState<TabId>("overview");
+  const tabGroup = useId(); // scopes the sliding tab pill to this panel
   const [expandedRun, setExpandedRun] = useState<string | null>(null);
   const [timeline, setTimeline] = useState<RunTimeline | null>(null);
 
@@ -418,7 +420,8 @@ export function DetailPanel({ node, graph, since, until, onFocus, onClose }: Pro
             className={`tab ${tab === t.id ? "tab-active" : ""}`}
             onClick={() => setTab(t.id)}
           >
-            {t.label}
+            {tab === t.id && <TabPill layoutId={`${tabGroup}-pill`} />}
+            <span className="tab-label">{t.label}</span>
           </button>
         ))}
       </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Icon, type IconName } from "./Icon";
+import { TabPill } from "./Motion";
 
 /** Tabbed feature showcase for the landing page. Each tab is an authored SVG
  *  panel of one product view, drawn from the same primitives as the hero so
@@ -56,8 +57,11 @@ export function Showcase() {
             className={`showcase-tab${i === active ? " showcase-tab-active" : ""}${t.id === "drift" ? " showcase-tab-signal" : ""}`}
             onClick={() => setActive(i)}
           >
-            <Icon name={t.icon} size={14} />
-            <span>{t.label}</span>
+            {i === active && <TabPill layoutId="showcase-pill" />}
+            <span className="tab-label">
+              <Icon name={t.icon} size={14} />
+              <span>{t.label}</span>
+            </span>
           </button>
         ))}
       </div>

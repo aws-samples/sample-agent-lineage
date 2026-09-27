@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchGuardrailInterventions } from "../api";
 import type { GuardrailIntervention } from "../types";
 import { Icon } from "./Icon";
+import { TabPill } from "./Motion";
 
 const FILTERS = ["ALL", "BLOCKED", "MASKED", "PASSED"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -77,7 +78,8 @@ export function GuardrailInterventionsExplorer({ guardrailId, guardrailName, sin
               className={`tab ${filter === f ? "tab-active" : ""}`}
               onClick={() => { setFilter(f); setPage(0); }}
             >
-              {f.toLowerCase()}
+              {filter === f && <TabPill layoutId="guardrail-filter-pill" />}
+              <span className="tab-label">{f.toLowerCase()}</span>
             </button>
           ))}
           {categories.length > 0 && (

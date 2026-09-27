@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { fetchEvaluations } from "../api";
 import type { Evaluation } from "../types";
 import { Icon } from "./Icon";
+import { TabPill } from "./Motion";
 
 const FILTERS = ["ALL", "ONLINE", "ON-DEMAND"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -63,7 +64,8 @@ export function EvaluationsExplorer({ agentId, agentName, onClose }: Props) {
               className={`tab ${filter === f ? "tab-active" : ""}`}
               onClick={() => { setFilter(f); setExpanded(null); }}
             >
-              {f.toLowerCase()}
+              {filter === f && <TabPill layoutId="eval-filter-pill" />}
+              <span className="tab-label">{f.toLowerCase()}</span>
             </button>
           ))}
           <span className="runs-total">{visible.length} evaluations</span>

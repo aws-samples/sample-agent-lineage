@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { cloudWatchTraceUrl, fetchRuns, fetchRunTimeline } from "../api";
 import type { Run, RunTimeline } from "../types";
 import { RunTimelineView } from "./RunTimelineView";
+import { TabPill } from "./Motion";
 
 const PAGE_SIZE = 25;
 const STATES = ["ALL", "COMPLETE", "FAIL", "RUNNING"] as const;
@@ -92,7 +93,8 @@ export function RunsExplorer({ agentId, agentName, since, until, onClose }: Prop
               className={`tab ${state === s ? "tab-active" : ""}`}
               onClick={() => { setState(s); setPage(0); setExpanded(null); }}
             >
-              {s.toLowerCase()}
+              {state === s && <TabPill layoutId="runs-filter-pill" />}
+              <span className="tab-label">{s.toLowerCase()}</span>
             </button>
           ))}
           <span className="runs-total">{total.toLocaleString()} runs</span>

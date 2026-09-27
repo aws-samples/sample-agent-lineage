@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { fetchCedarDecisions } from "../api";
 import type { CedarDecision } from "../types";
 import { Icon } from "./Icon";
+import { TabPill } from "./Motion";
 
 const FILTERS = ["ALL", "ALLOW", "DENY"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -60,7 +61,8 @@ export function CedarDecisionsExplorer({ gatewayId, gatewayName, since, until, o
               className={`tab ${filter === f ? "tab-active" : ""}`}
               onClick={() => { setFilter(f); setPage(0); }}
             >
-              {f.toLowerCase()}
+              {filter === f && <TabPill layoutId="cedar-filter-pill" />}
+              <span className="tab-label">{f.toLowerCase()}</span>
             </button>
           ))}
           <span className="runs-total">

@@ -438,7 +438,17 @@ button:disabled { cursor: not-allowed; }
   padding: 6px 4px; border-radius: 6px; white-space: nowrap;
 }
 .tab:hover { color: var(--text); }
-.tab-active { background: var(--surface); color: var(--text); box-shadow: var(--shadow-1); }
+.tab-active { color: var(--text); }
+
+/* ---- sliding tab indicator ----
+   One `.tab-pill` (Motion layoutId) travels between tabs of a group. The
+   group isolates a stacking context so every label (z 1) paints above the
+   pill (z 0) even while it passes beneath a neighbouring tab. */
+.tab-bar, .runs-toolbar, .showcase-tabs { isolation: isolate; }
+.tab, .showcase-tab { position: relative; }
+.tab-label { position: relative; z-index: 1; }
+.tab-pill { position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none; }
+.tab-bar .tab-pill { background: var(--surface); box-shadow: var(--shadow-1); }
 .detail-header {
   background: var(--surface); border: 1px solid var(--border); border-top: 3px solid;
   border-radius: 10px; padding: 12px 14px;
@@ -713,7 +723,8 @@ button:disabled { cursor: not-allowed; }
   display: flex; align-items: center; gap: 4px; padding: 6px 20px 10px;
 }
 .runs-toolbar .tab { flex: none; padding: 5px 14px; background: var(--surface-3); }
-.runs-toolbar .tab-active { background: var(--chip-indigo-bg); color: var(--chip-indigo-text); }
+.runs-toolbar .tab-active { background: transparent; color: var(--chip-indigo-text); }
+.runs-toolbar .tab-pill { background: var(--chip-indigo-bg); }
 .runs-total { margin-left: auto; font-size: 12px; color: var(--text-3); }
 
 .runs-table-wrap { overflow-y: auto; flex: 1; padding: 0 20px; }
@@ -1003,8 +1014,11 @@ button:disabled { cursor: not-allowed; }
 [data-theme="light"] .showcase-tabs { background: #fff; border-color: rgba(15, 23, 42, 0.12); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05); }
 [data-theme="light"] .showcase-tab { color: #3b4657; }
 [data-theme="light"] .showcase-tab:hover { background: #f1f5f9; color: #0b1220; }
-[data-theme="light"] .showcase-tab-active { background: #0f172a; color: #fff; border-color: #0f172a; }
-[data-theme="light"] .showcase-tab-signal.showcase-tab-active { background: #f5a524; color: #1a1200; border-color: #f5a524; }
+[data-theme="light"] .showcase-tab-active,
+[data-theme="light"] .showcase-tab-active:hover { background: transparent; color: #fff; }
+[data-theme="light"] .showcase-tab .tab-pill { background: #0f172a; box-shadow: none; }
+[data-theme="light"] .showcase-tab-signal.showcase-tab-active { color: #1a1200; }
+[data-theme="light"] .showcase-tab-signal .tab-pill { background: #f5a524; }
 [data-theme="light"] .showcase-body {
   background: #fff; border-color: rgba(15, 23, 42, 0.12);
   box-shadow: 0 18px 44px rgba(15, 23, 42, 0.10), 0 4px 12px rgba(15, 23, 42, 0.06);
@@ -1207,8 +1221,14 @@ button:disabled { cursor: not-allowed; }
   background: transparent; color: var(--text-2); font-size: 13px; font-weight: 500; cursor: pointer;
 }
 .showcase-tab .icon { margin: 0; }
+.showcase-tab .tab-label { display: inline-flex; align-items: center; gap: 8px; }
 .showcase-tab:hover { color: var(--text); background: var(--surface-3); }
-.showcase-tab-active { background: var(--surface-3); color: var(--text); border-color: var(--hairline-strong); }
+.showcase-tab-active, .showcase-tab-active:hover { background: transparent; color: var(--text); }
+/* the pill covers the tab's 1px (transparent) border too */
+.showcase-tab .tab-pill {
+  inset: -1px; border-radius: 8px;
+  background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--hairline-strong);
+}
 .showcase-tab-signal.showcase-tab-active { color: var(--signal-text); }
 
 .showcase-body {
