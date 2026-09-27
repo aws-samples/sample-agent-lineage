@@ -2,11 +2,11 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from . import models, pricing
-from .schemas import AgentRunEvent, EntityRef
+from .schemas import AgentRunEvent, EntityRef, node_id
 
 
 def upsert_node(db: Session, ref: EntityRef) -> models.Node:
@@ -62,6 +62,29 @@ def upsert_edge(
         edge.call_count = (edge.call_count or 0) + 1
         edge.last_observed_at = observed_at
     return edge
+
+
+def backfill_run_participants(db: Session) -> int:
+    """One-time: derive run participation from stored raw events for data
+    ingested before run_participants existed. No-op once the table has rows
+    (new events record participants at ingest). Returns rows added."""
+    if db.scalar(select(func.count()).select_from(models.RunParticipant)):
+        return 0
+    known = set(db.scalars(select(models.Node.id).where(models.Node.node_type == "agent")))
+    pairs: set[tuple[str, str]] = set()
+    for run_id, payload in db.execute(
+        select(models.LineageEvent.run_id, models.LineageEvent.payload)
+        .where(models.LineageEvent.run_id.is_not(None))
+    ):
+        p = payload or {}
+        for ref in [p.get("agent") or {}, *(p.get("subAgents") or [])]:
+            if ref.get("name"):
+                aid = node_id(ref.get("namespace") or "default", "agent", ref["name"])
+                if aid in known:
+                    pairs.add((run_id, aid))
+    db.add_all(models.RunParticipant(run_id=r, agent_id=a) for r, a in pairs)
+    db.commit()
+    return len(pairs)
 
 
 def ingest_event(db: Session, event: AgentRunEvent) -> models.Run:
@@ -127,6 +150,12 @@ def ingest_event(db: Session, event: AgentRunEvent) -> models.Run:
     ):
         target = upsert_node(db, ref)
         upsert_edge(db, agent.id, target.id, edge_type, "observed", ts)
+
+    # Run participation: the acting agent and any agent it delegates to, so a
+    # sub-agent's runs are listable from the sub-agent itself.
+    for participant_id in {agent.id, *(r.id for r in event.sub_agents)}:
+        if db.get(models.RunParticipant, (event.run_id, participant_id)) is None:
+            db.add(models.RunParticipant(run_id=event.run_id, agent_id=participant_id))
 
     # Gateway-routed tool calls with Cedar decisions.
     # agent -> gateway edge accumulates ALLOW/DENY counts; the gateway -> tool

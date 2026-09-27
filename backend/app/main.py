@@ -15,8 +15,8 @@ from sqlalchemy.orm import Session
 from . import auth, rbac
 from . import graph as graph_service
 from . import ingest, models, registry_sync
-from .database import Base, engine, get_db
-from sqlalchemy import func
+from .database import Base, SessionLocal, engine, get_db
+from sqlalchemy import func, or_
 
 from .schemas import (
     AccessRequestIn,
@@ -41,6 +41,10 @@ from .schemas import (
 )
 
 Base.metadata.create_all(bind=engine)
+# run_participants arrived after data already existed: derive it once from
+# the stored raw events (no-op when the table is populated).
+with SessionLocal() as _db:
+    ingest.backfill_run_participants(_db)
 
 app = FastAPI(title="Agent Lineage", version="0.1.0")
 app.add_middleware(
@@ -274,9 +278,17 @@ def _run_out(run: models.Run, usage: dict[str, tuple]) -> RunOut:
     )
 
 
-def _usage_by_run(db: Session, run_ids: list[str]) -> dict[str, tuple]:
+def _usage_by_run(
+    db: Session, run_ids: list[str], agent_id: Optional[str] = None,
+) -> dict[str, tuple]:
+    """Per-run LLM cost/tokens. With agent_id, only that agent's share — so a
+    sub-agent's run list agrees with its own cost summary rather than showing
+    the whole root run's spend."""
     if not run_ids:
         return {}
+    conds = [models.LlmUsage.run_id.in_(run_ids)]
+    if agent_id:
+        conds.append(models.LlmUsage.agent_id == agent_id)
     rows = db.execute(
         select(
             models.LlmUsage.run_id,
@@ -284,7 +296,7 @@ def _usage_by_run(db: Session, run_ids: list[str]) -> dict[str, tuple]:
             func.sum(models.LlmUsage.input_tokens),
             func.sum(models.LlmUsage.output_tokens),
         )
-        .where(models.LlmUsage.run_id.in_(run_ids))
+        .where(*conds)
         .group_by(models.LlmUsage.run_id)
     ).all()
     return {r[0]: (r[1], r[2], r[3]) for r in rows}
@@ -303,6 +315,17 @@ def post_lineage_event(event: AgentRunEvent, db: Session = Depends(get_db)):
     return _run_out(run, _usage_by_run(db, [run.run_id]))
 
 
+def _agent_participated(agent_id: str):
+    """Condition: runs this agent took part in, as the root agent OR as a
+    delegated sub-agent. A run is stored under its root agent (the one that
+    emitted START), so matching on Run.agent_id alone showed sub-agents as
+    having no runs even though their steps were recorded."""
+    joined = select(models.RunParticipant.run_id).where(
+        models.RunParticipant.agent_id == agent_id
+    )
+    return or_(models.Run.agent_id == agent_id, models.Run.run_id.in_(joined))
+
+
 @app.get("/api/v1/runs", response_model=RunsPage)
 def list_runs(
     agent_id: Optional[str] = None,
@@ -319,7 +342,7 @@ def list_runs(
     conditions = []
     if agent_id:
         _check_node_scope(db, agent_id, entries)
-        conditions.append(models.Run.agent_id == agent_id)
+        conditions.append(_agent_participated(agent_id))
     if state:
         conditions.append(models.Run.state == state)
     conditions += _window(models.Run.started_at, since, until)
@@ -335,7 +358,7 @@ def list_runs(
         .order_by(models.Run.started_at.desc())
         .limit(limit).offset(offset)
     ))
-    usage = _usage_by_run(db, [r.run_id for r in runs])
+    usage = _usage_by_run(db, [r.run_id for r in runs], agent_id)
     return RunsPage(total=total, runs=[_run_out(r, usage) for r in runs])
 
 
@@ -737,7 +760,7 @@ def agent_cost(
     # showed windowed dollars next to an all-time run count).
     run_count = db.scalar(
         select(func.count()).select_from(models.Run).where(
-            models.Run.agent_id == agent_id, *_window(models.Run.started_at, since, until),
+            _agent_participated(agent_id), *_window(models.Run.started_at, since, until),
         )
     ) or 0
     return AgentCost(

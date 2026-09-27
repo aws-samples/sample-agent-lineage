@@ -253,7 +253,7 @@ against the control plane that made it. What bounds the risk:
 | `DELETE /api/v1/namespaces/{ns}` | admin | Purge one namespace (e.g. the demo dataset) |
 | `GET /api/v1/lineage/graph?node_id=&depth=&since=&until=` | any | Directional lineage graph; repeat `node_id` for multi-focus; `since`/`until` window the observed traffic |
 | `GET /api/v1/search?q=` | any | Cross-type catalog search (agents, tools, skills, gateways, LLMs…) |
-| `GET /api/v1/runs`, `GET /api/v1/runs/{id}/timeline` | any | Paginated run history with cost rollups; per-run trajectory |
+| `GET /api/v1/runs`, `GET /api/v1/runs/{id}/timeline` | any | Paginated run history with cost rollups (with `agent_id`, includes runs the agent joined as a sub-agent, costed at its own share); per-run trajectory |
 | `GET /api/v1/costs/{agent_id}`, `GET /api/v1/llm-stats` | any | Cost attribution per agent / per model (time-windowed) |
 | `GET /api/v1/costs/by-caller?agent_id=&caller=` | any | Cost attribution per calling user group / OAuth client (e.g. Entra ID app), from the caller claim on each run |
 | `GET /api/v1/cedar-decisions`, `GET /api/v1/guardrail-interventions` | any | Governance audit logs |

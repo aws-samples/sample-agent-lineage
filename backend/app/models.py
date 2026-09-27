@@ -146,6 +146,17 @@ class AccessRequest(Base):
     decided_by: Mapped[str] = mapped_column(String, default="")  # admin email/username
 
 
+class RunParticipant(Base):
+    """Every agent that took part in a run: the root agent that emitted START
+    and each delegated sub-agent. A run row is keyed to its root agent only,
+    so without this a sub-agent's activity (which lives inside the root's run)
+    was invisible from the sub-agent's own view."""
+    __tablename__ = "run_participants"
+
+    run_id: Mapped[str] = mapped_column(String, primary_key=True)
+    agent_id: Mapped[str] = mapped_column(ForeignKey("nodes.id"), primary_key=True, index=True)
+
+
 class LineageEvent(Base):
     """Raw event storage for audit / replay (OpenLineage-style)."""
     __tablename__ = "lineage_events"
