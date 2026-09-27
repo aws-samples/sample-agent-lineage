@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { cloudWatchTraceUrl, fetchRuns, fetchRunTimeline } from "../api";
 import type { Run, RunTimeline } from "../types";
 import { RunTimelineView } from "./RunTimelineView";
-import { TabPill } from "./Motion";
+import { AnimatedNumber, TabPill } from "./Motion";
 
 const PAGE_SIZE = 25;
 const STATES = ["ALL", "COMPLETE", "FAIL", "RUNNING"] as const;
@@ -97,7 +97,7 @@ export function RunsExplorer({ agentId, agentName, since, until, onClose }: Prop
               <span className="tab-label">{s.toLowerCase()}</span>
             </button>
           ))}
-          <span className="runs-total">{total.toLocaleString()} runs</span>
+          <span className="runs-total"><AnimatedNumber value={total} /> runs</span>
         </div>
 
         <div className="runs-table-wrap">

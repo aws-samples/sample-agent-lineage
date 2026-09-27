@@ -31,7 +31,7 @@ import { GuardrailInterventionsExplorer } from "./GuardrailInterventionsExplorer
 import { RunsExplorer } from "./RunsExplorer";
 import { RunTimelineView } from "./RunTimelineView";
 import { Icon } from "./Icon";
-import { TabPill } from "./Motion";
+import { AnimatedNumber, TabPill, usd2 } from "./Motion";
 
 interface Props {
   node: GraphNode;
@@ -431,10 +431,11 @@ export function DetailPanel({ node, graph, since, until, onFocus, onClose }: Pro
         <section>
           <h3><Icon name="cost" /> Cost (LLM token usage)</h3>
           <div className="cost-summary">
-            <div className="cost-big">${cost.total_cost_usd.toFixed(2)}</div>
+            <div className="cost-big"><AnimatedNumber value={cost.total_cost_usd} format={usd2} /></div>
             <div className="cost-sub">
-              {cost.run_count} runs · {cost.total_input_tokens.toLocaleString()} in /{" "}
-              {cost.total_output_tokens.toLocaleString()} out tokens
+              <AnimatedNumber value={cost.run_count} /> runs ·{" "}
+              <AnimatedNumber value={cost.total_input_tokens} /> in /{" "}
+              <AnimatedNumber value={cost.total_output_tokens} /> out tokens
             </div>
           </div>
           <table className="cost-table">
@@ -793,10 +794,11 @@ export function DetailPanel({ node, graph, since, until, onFocus, onClose }: Pro
             return (
               <>
                 <div className="cost-summary">
-                  <div className="cost-big">${me.cost_usd.toFixed(2)}</div>
+                  <div className="cost-big"><AnimatedNumber value={me.cost_usd} format={usd2} /></div>
                   <div className="cost-sub">
-                    {me.run_count} runs · {me.input_tokens.toLocaleString()} in /{" "}
-                    {me.output_tokens.toLocaleString()} out tokens
+                    <AnimatedNumber value={me.run_count} /> runs ·{" "}
+                    <AnimatedNumber value={me.input_tokens} /> in /{" "}
+                    <AnimatedNumber value={me.output_tokens} /> out tokens
                   </div>
                 </div>
                 <table className="cost-table">
@@ -824,11 +826,11 @@ export function DetailPanel({ node, graph, since, until, onFocus, onClose }: Pro
         <section>
           <h3><Icon name="cost" /> Model usage</h3>
           <div className="cost-summary">
-            <div className="cost-big">${llmStats.cost_usd.toFixed(2)}</div>
+            <div className="cost-big"><AnimatedNumber value={llmStats.cost_usd} format={usd2} /></div>
             <div className="cost-sub">
-              {llmStats.invocations.toLocaleString()} invocations ·{" "}
-              {llmStats.input_tokens.toLocaleString()} in /{" "}
-              {llmStats.output_tokens.toLocaleString()} out tokens
+              <AnimatedNumber value={llmStats.invocations} /> invocations ·{" "}
+              <AnimatedNumber value={llmStats.input_tokens} /> in /{" "}
+              <AnimatedNumber value={llmStats.output_tokens} /> out tokens
             </div>
           </div>
           <table className="cost-table">

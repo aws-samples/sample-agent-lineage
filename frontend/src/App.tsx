@@ -8,6 +8,7 @@ import { CatalogSearch } from "./components/CatalogSearch";
 import { DetailPanel } from "./components/DetailPanel";
 import { Icon } from "./components/Icon";
 import { LineageGraph } from "./components/LineageGraph";
+import { AnimatedNumber, usd2 } from "./components/Motion";
 import { LogoLockup } from "./components/Logo";
 import { ThemeToggle } from "./components/ThemeToggle";
 import {
@@ -244,7 +245,7 @@ export default function App() {
             <span className="metric">{focusNodes.length}</span> in focus
             {selectedAgents.length > 0 && (
               // Catalog totals are all-time; say so when a window is active.
-              <> · {windowed ? "all-time " : ""}LLM cost <span className="metric">${totalSelectedCost.toFixed(2)}</span></>
+              <> · {windowed ? "all-time " : ""}LLM cost <span className="metric"><AnimatedNumber value={totalSelectedCost} format={usd2} /></span></>
             )}
           </span>
         )}
