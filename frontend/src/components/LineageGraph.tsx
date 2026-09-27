@@ -65,6 +65,7 @@ export function LineageGraph({ graph, onSelect }: Props) {
 
   return (
     <ReactFlow
+      className="lineage-canvas"
       nodes={nodes}
       edges={edges}
       nodeTypes={nodeTypes}

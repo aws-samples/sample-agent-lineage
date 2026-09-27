@@ -368,6 +368,10 @@ button:disabled { cursor: not-allowed; }
 }
 .react-flow__controls button:hover { background: var(--surface-3) !important; }
 .react-flow__edge-text { fill: var(--text-2) !important; }
+/* Edges fade in just behind the node sweep (EntityNode) each time a graph
+   lands. The lineage canvas only: the run trajectory graph has no class. */
+.lineage-canvas .react-flow__edge { animation: edge-in 0.4s var(--ease-out) 0.15s both; }
+@keyframes edge-in { from { opacity: 0; } to { opacity: 1; } }
 .react-flow__edge-textbg { fill: var(--bg-canvas) !important; }
 
 /* ---- floating layers palette (top-right) ---- */
