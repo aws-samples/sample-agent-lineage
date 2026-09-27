@@ -319,6 +319,21 @@ button:disabled { cursor: not-allowed; }
 .range-picker input[type="date"]:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .range-arrow { color: var(--text-4); font-size: 12px; }
 
+/* ---- multi-focus depth toggle (command strip) ---- */
+.focus-btn.depth-toggle {
+  margin-top: 0; display: inline-flex; align-items: center; gap: 7px;
+  height: 30px; padding: 0 11px 0 9px; white-space: nowrap; flex: none;
+}
+.depth-glyph { display: block; flex: none; overflow: visible; }
+.depth-glyph-line { stroke: var(--text-4); stroke-width: 1.2; stroke-linecap: round; }
+.depth-glyph-focus { fill: var(--accent); }
+.depth-glyph-direct { fill: var(--text-2); }
+.depth-glyph-outer { fill: var(--text-3); }
+.depth-toggle:hover .depth-glyph-line { stroke: var(--text-3); }
+/* collapsed: the button reads as an active scope, like the range picker */
+.focus-btn.depth-toggle-collapsed { border-color: var(--accent); background: var(--accent-soft); }
+.focus-btn.depth-toggle-collapsed:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+
 /* layers legend: which window the graph's traffic is scoped to */
 .legend-window { padding: 2px 12px 4px; font-size: 11px; color: var(--text-3); }
 .legend-window b { color: var(--text-2); font-weight: 600; }

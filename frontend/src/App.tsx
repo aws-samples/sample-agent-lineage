@@ -7,6 +7,7 @@ import { AwsConnectModal } from "./components/AwsConnectModal";
 import { CatalogSearch } from "./components/CatalogSearch";
 import { DetailPanel } from "./components/DetailPanel";
 import { Icon } from "./components/Icon";
+import { LineageDepthToggle } from "./components/LineageDepthToggle";
 import { LineageGraph } from "./components/LineageGraph";
 import { AnimatePresence, m } from "motion/react";
 import { AnimatedNumber, usd2 } from "./components/Motion";
@@ -59,6 +60,7 @@ export default function App() {
   const [customFrom, setCustomFrom] = useState(() => isoDay(new Date(Date.now() - 7 * 86400000)));
   const [customTo, setCustomTo] = useState(today);
   const [layersOpen, setLayersOpen] = useState(true);
+  const [collapsed, setCollapsed] = useState(false); // multi-focus: direct links only
 
   useEffect(() => {
     fetchNamespaces().then(setNamespaces).catch(() => setNamespaces([]));
@@ -122,9 +124,17 @@ export default function App() {
   // Only the latest request may land: rapid window/focus changes overlap, and
   // an older response must never overwrite a newer one.
   const graphReq = useRef(0);
+  // Several catalog selections at once: offer collapsing each to its direct
+  // links (depth 1) so they can be compared side by side. The choice sticks
+  // while the multi-selection lasts; a single focus always shows full lineage.
+  const multiFocus = focusNodeId === null && focusNodes.length > 1;
+  const depth = multiFocus && collapsed ? 1 : 5;
+  useEffect(() => {
+    if (!multiFocus) setCollapsed(false);
+  }, [multiFocus]);
   const load = useCallback((nodeIds: string[]) => {
     const req = ++graphReq.current;
-    fetchGraph(nodeIds, 5, namespace || undefined, { since, until })
+    fetchGraph(nodeIds, depth, namespace || undefined, { since, until })
       .then((g) => {
         if (req !== graphReq.current) return;
         setGraph(g);
@@ -134,7 +144,7 @@ export default function App() {
       .catch((e: Error) => {
         if (req === graphReq.current) setError(e.message);
       });
-  }, [namespace, since, until]);
+  }, [namespace, since, until, depth]);
 
   // Focus priority: explicit node focus (from detail panel) > catalog selection.
   // Nothing selected -> empty state (unless the user asked for the full graph).
@@ -252,6 +262,9 @@ export default function App() {
               <> · {windowed ? "all-time " : ""}LLM cost <span className="metric"><AnimatedNumber value={totalSelectedCost} format={usd2} /></span></>
             )}
           </span>
+        )}
+        {multiFocus && (
+          <LineageDepthToggle collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
         )}
         {focusNodeId && (
           <button className="focus-btn" onClick={() => setFocusNodeId(null)}>
@@ -380,6 +393,11 @@ export default function App() {
               <div className="legend-window" title="Observed traffic on the graph is scoped to this window. Declared edges reflect current configuration.">
                 Traffic · <b>{windowLabel}</b>
               </div>
+              {depth === 1 && (
+                <div className="legend-window" title="Each selected node's direct links only. Use Expand lineage to trace further.">
+                  Depth · <b>direct links</b>
+                </div>
+              )}
               <ul className="legend legend-edges">
                 <li><span className="edge-sample solid-amber" /> observed, undeclared</li>
                 <li><span className="edge-sample solid-red" /> has Cedar denials</li>
