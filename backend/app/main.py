@@ -3,7 +3,7 @@
 NOTE: v1 has no authentication. Do not expose beyond localhost / trusted networks
 until authn/z is added (see docs/RESEARCH.md roadmap).
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
@@ -341,9 +341,19 @@ def list_runs(
 
 # ---------- Time window (shared by every time-scoped endpoint) ----------
 
+def _utc(dt: Optional[datetime]) -> Optional[datetime]:
+    """Query-string timestamps may arrive with or without an offset. Treat a
+    naive one as UTC so bounds always compare (mixing the two otherwise
+    raised TypeError -> 500)."""
+    if dt is not None and dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 def _window(col, since: Optional[datetime], until: Optional[datetime]) -> list:
     """SQL conditions bounding `col` to [since, until]; either bound optional.
     A reversed range is a client error, not an empty result."""
+    since, until = _utc(since), _utc(until)
     if since and until and since > until:
         raise HTTPException(400, "since must be before until")
     conds = []
@@ -371,6 +381,7 @@ def get_lineage_graph(
     narrowed further to one selected namespace. With since/until, observed
     traffic (and therefore observed-only edges) is scoped to that window;
     declared edges reflect current configuration."""
+    since, until = _utc(since), _utc(until)
     if since and until and since > until:
         raise HTTPException(400, "since must be before until")
     if namespace:

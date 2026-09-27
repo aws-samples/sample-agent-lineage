@@ -25,6 +25,7 @@ prevent regression of all previously remediated findings.
 | F9 | Low | Unvalidated CloudWatch JSON | Schema/size validation in otel_translator and ingestion | +90 days |
 | F12 | Low | No size/cardinality caps | Payload size limit + per-run event caps at ingestion (with F9) | +90 days |
 | F6 | Low | EFS root POSIX identity | Move access point to uid 1000; requires file-ownership migration on existing EFS data | +90 days |
+| F14 | Low | Time-windowed graph replays raw `lineage_events` on every request (unindexed `event_time`, window unbounded — `since=1970` replays everything); an authenticated user can drive repeated full scans | Index `lineage_events.event_time` (needs a migration on the existing EFS database) and pre-aggregate per-edge daily traffic so a window sums rollups instead of replaying events; cap window length until then. Pairs with F10 rate limiting | +90 days |
 
 ## Accepted risk — documented justification
 
