@@ -250,7 +250,10 @@ export function DetailPanel({ node, graph, since, until, onFocus, onClose }: Pro
   const [showAllDecisions, setShowAllDecisions] = useState(false);
   const [showAllInterventions, setShowAllInterventions] = useState(false);
   const [showInterventionsExplorer, setShowInterventionsExplorer] = useState(false);
-  const [tab, setTab] = useState<TabId>("overview");
+  // The tab the user chose. What's displayed (`tab`, below) falls back to
+  // Overview while that tab has nothing to show — e.g. Usage in a window with
+  // no runs — and returns to the choice when the content comes back.
+  const [tabPref, setTab] = useState<TabId>("overview");
   const tabGroup = useId(); // scopes the sliding tab pill to this panel
   const [expandedRun, setExpandedRun] = useState<string | null>(null);
   const [timeline, setTimeline] = useState<RunTimeline | null>(null);
@@ -387,6 +390,7 @@ export function DetailPanel({ node, graph, since, until, onFocus, onClose }: Pro
         (callerCosts !== null && callerCosts.callers.length > 0),
     },
   ];
+  const tab: TabId = tabs.some((t) => t.id === tabPref && t.show) ? tabPref : "overview";
 
   return (
     <m.aside
