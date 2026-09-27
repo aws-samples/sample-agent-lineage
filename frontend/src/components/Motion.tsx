@@ -40,9 +40,25 @@ export function rowIn(i: number, stagger = 0.018) {
   } as const;
 }
 
-/* ---- modal shell ---------------------------------------------------- */
-
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
+
+/* ---- scroll reveal -------------------------------------------------- */
+
+/**
+ * Props for a block that rises into place the first time it scrolls into
+ * view (once only). `i` staggers siblings. Apply to content, not to a tile
+ * whose background is part of a grid, or the grid shows through the fade.
+ */
+export function revealOnScroll(i = 0) {
+  return {
+    initial: { opacity: 0, y: 14 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: true, amount: 0.3 },
+    transition: { duration: 0.5, delay: i * 0.08, ease: EASE_OUT },
+  } as const;
+}
+
+/* ---- modal shell ---------------------------------------------------- */
 
 /**
  * Backdrop + dialog with enter AND exit motion. Render it under an

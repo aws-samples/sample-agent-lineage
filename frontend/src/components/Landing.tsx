@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Icon } from "./Icon";
 import { LogoLockup } from "./Logo";
 import { REPO_URL } from "./Markdown";
+import { m } from "motion/react";
+import { revealOnScroll } from "./Motion";
 import { Showcase } from "./Showcase";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -79,17 +81,20 @@ export function Landing({ mode, onEnter }: Props) {
 
       <section className="landing-beats" aria-label="What Agent Lineage does">
         <Beat
+          index={0}
           icon="agent"
           title="See"
           text="Every user group, agent, sub-agent, gateway, tool, model and resource in one connected graph — synced read-only from your account."
         />
         <Beat
+          index={1}
           icon="gateway"
           title="Govern"
           text="Every Cedar decision, guardrail intervention and evaluation result, attached to the edge where it happened. The audit trail is a filter, not a search."
           signal
         />
         <Beat
+          index={2}
           icon="cost"
           title="Attribute"
           text="Token spend turned into dollars — per model, per agent, per run, and per calling team. Chargeback for agentic AI in one query."
@@ -111,14 +116,18 @@ export function Landing({ mode, onEnter }: Props) {
   );
 }
 
-function Beat({ icon, title, text, signal }: { icon: "agent" | "gateway" | "cost"; title: string; text: string; signal?: boolean }) {
+function Beat({ icon, title, text, signal, index }: { icon: "agent" | "gateway" | "cost"; title: string; text: string; signal?: boolean; index: number }) {
   return (
     <div className={`beat${signal ? " beat-signal" : ""}`}>
-      <div className="beat-head">
-        <Icon name={icon} size={16} />
-        <h2>{title}</h2>
-      </div>
-      <p>{text}</p>
+      {/* the tile stays put (its background is the hairline grid); only the
+          content rises in, one beat after another */}
+      <m.div {...revealOnScroll(index)}>
+        <div className="beat-head">
+          <Icon name={icon} size={16} />
+          <h2>{title}</h2>
+        </div>
+        <p>{text}</p>
+      </m.div>
     </div>
   );
 }

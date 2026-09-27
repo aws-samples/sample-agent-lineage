@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Icon, type IconName } from "./Icon";
-import { TabPill } from "./Motion";
+import { m } from "motion/react";
+import { revealOnScroll, TabPill } from "./Motion";
 
 /** Tabbed feature showcase for the landing page. Each tab is an authored SVG
  *  panel of one product view, drawn from the same primitives as the hero so
@@ -41,11 +42,11 @@ export function Showcase() {
 
   return (
     <section className="showcase" aria-labelledby="showcase-title">
-      <div className="showcase-head">
+      <m.div className="showcase-head" {...revealOnScroll(0)}>
         <h2 id="showcase-title">One graph. Every question.</h2>
         <p>Pick a view. Each one attaches to the same lineage graph.</p>
-      </div>
-      <div className="showcase-tabs" role="tablist" aria-label="Product views" onKeyDown={onKey}>
+      </m.div>
+      <m.div className="showcase-tabs" role="tablist" aria-label="Product views" onKeyDown={onKey} {...revealOnScroll(1)}>
         {TABS.map((t, i) => (
           <button
             key={t.id}
@@ -64,8 +65,14 @@ export function Showcase() {
             </span>
           </button>
         ))}
-      </div>
-      <div className="showcase-body" role="tabpanel" id={`sc-panel-${tab.id}`} aria-labelledby={`sc-tab-${tab.id}`}>
+      </m.div>
+      <m.div
+        className="showcase-body"
+        role="tabpanel"
+        id={`sc-panel-${tab.id}`}
+        aria-labelledby={`sc-tab-${tab.id}`}
+        {...revealOnScroll(2)}
+      >
         <div className="showcase-copy">
           <div className={`showcase-kicker${tab.id === "drift" ? " showcase-kicker-signal" : ""}`}>{tab.kicker}</div>
           <h3>{tab.label}</h3>
@@ -74,7 +81,7 @@ export function Showcase() {
         <div className="showcase-panel" key={tab.id}>
           <Panel />
         </div>
-      </div>
+      </m.div>
     </section>
   );
 }
