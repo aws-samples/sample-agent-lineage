@@ -308,6 +308,7 @@ def list_runs(
     agent_id: Optional[str] = None,
     state: Optional[str] = Query(default=None, pattern="^(RUNNING|COMPLETE|FAIL)$"),
     since: Optional[datetime] = None,
+    until: Optional[datetime] = None,
     limit: int = Query(default=25, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
@@ -321,8 +322,7 @@ def list_runs(
         conditions.append(models.Run.agent_id == agent_id)
     if state:
         conditions.append(models.Run.state == state)
-    if since:
-        conditions.append(models.Run.started_at >= since)
+    conditions += _window(models.Run.started_at, since, until)
     if entries is not None:
         allowed = _visible_namespaces(db, entries)
         agent_ids = select(models.Node.id).where(models.Node.namespace.in_(allowed))
@@ -339,6 +339,21 @@ def list_runs(
     return RunsPage(total=total, runs=[_run_out(r, usage) for r in runs])
 
 
+# ---------- Time window (shared by every time-scoped endpoint) ----------
+
+def _window(col, since: Optional[datetime], until: Optional[datetime]) -> list:
+    """SQL conditions bounding `col` to [since, until]; either bound optional.
+    A reversed range is a client error, not an empty result."""
+    if since and until and since > until:
+        raise HTTPException(400, "since must be before until")
+    conds = []
+    if since:
+        conds.append(col >= since)
+    if until:
+        conds.append(col <= until)
+    return conds
+
+
 # ---------- Graph for the UI ----------
 
 @app.get("/api/v1/lineage/graph", response_model=Graph)
@@ -346,12 +361,18 @@ def get_lineage_graph(
     node_id: Optional[list[str]] = Query(default=None),
     depth: int = Query(default=5, ge=1, le=10),
     namespace: Optional[str] = Query(default=None),
+    since: Optional[datetime] = None,
+    until: Optional[datetime] = None,
     db: Session = Depends(get_db),
     entries=Depends(rbac.scope),
 ):
     """Full graph, or the union of BFS neighborhoods around one or more focus
     nodes -- always limited to the caller's namespace scope, optionally
-    narrowed further to one selected namespace."""
+    narrowed further to one selected namespace. With since/until, observed
+    traffic (and therefore observed-only edges) is scoped to that window;
+    declared edges reflect current configuration."""
+    if since and until and since > until:
+        raise HTTPException(400, "since must be before until")
     if namespace:
         rbac.check_ns(namespace, entries)
 
@@ -361,7 +382,9 @@ def get_lineage_graph(
         return rbac.ns_allowed(ns, entries)
 
     restrict = allowed if (namespace or entries is not None) else None
-    return graph_service.get_graph(db, node_ids=node_id, depth=depth, ns_allowed=restrict)
+    return graph_service.get_graph(
+        db, node_ids=node_id, depth=depth, ns_allowed=restrict, since=since, until=until,
+    )
 
 
 # ---------- Cross-type catalog search ----------
@@ -521,6 +544,7 @@ def list_evaluations(
 def llm_stats(
     llm_id: str,
     since: Optional[datetime] = None,
+    until: Optional[datetime] = None,
     db: Session = Depends(get_db),
     entries=Depends(rbac.scope),
 ):
@@ -529,8 +553,7 @@ def llm_stats(
         raise HTTPException(404, "llm not found")
     _check_node_scope(db, llm_id, entries)
     conditions = [models.LlmUsage.llm_id == llm_id]
-    if since:
-        conditions.append(models.LlmUsage.recorded_at >= since)
+    conditions += _window(models.LlmUsage.recorded_at, since, until)
     rows = db.execute(
         select(
             models.LlmUsage.agent_id,
@@ -582,6 +605,7 @@ def costs_by_caller(
     agent_id: Optional[str] = None,
     caller: Optional[str] = None,
     since: Optional[datetime] = None,
+    until: Optional[datetime] = None,
     db: Session = Depends(get_db),
     entries=Depends(rbac.scope),
 ):
@@ -604,8 +628,7 @@ def costs_by_caller(
         conditions.append(models.LlmUsage.agent_id == agent_id)
     if caller:
         conditions.append(caller_col == caller)
-    if since:
-        conditions.append(models.LlmUsage.recorded_at >= since)
+    conditions += _window(models.LlmUsage.recorded_at, since, until)
 
     rows = db.execute(
         select(
@@ -666,6 +689,7 @@ def costs_by_caller(
 def agent_cost(
     agent_id: str,
     since: Optional[datetime] = None,
+    until: Optional[datetime] = None,
     db: Session = Depends(get_db),
     entries=Depends(rbac.scope),
 ):
@@ -674,8 +698,7 @@ def agent_cost(
     _check_node_scope(db, agent_id, entries)
 
     conditions = [models.LlmUsage.agent_id == agent_id]
-    if since:
-        conditions.append(models.LlmUsage.recorded_at >= since)
+    conditions += _window(models.LlmUsage.recorded_at, since, until)
     rows = db.execute(
         select(
             models.LlmUsage.llm_id,
@@ -699,8 +722,12 @@ def agent_cost(
         )
         for llm_id, inp, out, cost, calls in rows
     ]
+    # Runs in the same window as the cost rows (was all-time, so the panel
+    # showed windowed dollars next to an all-time run count).
     run_count = db.scalar(
-        select(func.count()).select_from(models.Run).where(models.Run.agent_id == agent_id)
+        select(func.count()).select_from(models.Run).where(
+            models.Run.agent_id == agent_id, *_window(models.Run.started_at, since, until),
+        )
     ) or 0
     return AgentCost(
         agent_id=agent_id,
@@ -718,6 +745,8 @@ def agent_cost(
 def cedar_decisions(
     gateway_id: str,
     decision: Optional[str] = Query(default=None, pattern="^(ALLOW|DENY)$"),
+    since: Optional[datetime] = None,
+    until: Optional[datetime] = None,
     limit: int = Query(default=100, ge=1, le=500),
     db: Session = Depends(get_db),
     entries=Depends(rbac.scope),
@@ -726,7 +755,10 @@ def cedar_decisions(
     _check_node_scope(db, gateway_id, entries)
     stmt = (
         select(models.CedarDecision)
-        .where(models.CedarDecision.gateway_id == gateway_id)
+        .where(
+            models.CedarDecision.gateway_id == gateway_id,
+            *_window(models.CedarDecision.decided_at, since, until),
+        )
         .order_by(models.CedarDecision.decided_at.desc())
         .limit(limit)
     )
@@ -753,6 +785,8 @@ def cedar_decisions(
 @app.get("/api/v1/guardrail-interventions", response_model=list[GuardrailInterventionOut])
 def guardrail_interventions(
     guardrail_id: str,
+    since: Optional[datetime] = None,
+    until: Optional[datetime] = None,
     limit: int = Query(default=100, ge=1, le=500),
     db: Session = Depends(get_db),
     entries=Depends(rbac.scope),
@@ -760,7 +794,10 @@ def guardrail_interventions(
     _check_node_scope(db, guardrail_id, entries)
     rows = list(db.scalars(
         select(models.GuardrailIntervention)
-        .where(models.GuardrailIntervention.guardrail_id == guardrail_id)
+        .where(
+            models.GuardrailIntervention.guardrail_id == guardrail_id,
+            *_window(models.GuardrailIntervention.occurred_at, since, until),
+        )
         .order_by(models.GuardrailIntervention.occurred_at.desc())
         .limit(limit)
     ))

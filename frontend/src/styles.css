@@ -297,6 +297,29 @@ button:disabled { cursor: not-allowed; }
 .search-summary { font-size: 12px; color: var(--text-3); white-space: nowrap; }
 .search-summary .metric { margin: 0 2px; }
 
+/* ---- custom time range (command strip, right) ---- */
+.range-picker {
+  margin: 0 0 0 auto; padding: 0; border: none; min-width: 0;
+  display: flex; align-items: center; gap: 8px; flex: none;
+}
+.range-picker label { display: flex; align-items: center; gap: 6px; }
+.range-picker label > span {
+  font-size: 10.5px; font-weight: 600; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.range-picker input[type="date"] {
+  height: 30px; padding: 0 8px; border-radius: 6px;
+  border: 1px solid var(--hairline-strong); background: var(--surface); color: var(--text);
+  font-size: 12px; font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+}
+.range-picker input[type="date"]:hover { border-color: var(--text-4); }
+.range-picker input[type="date"]:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.range-arrow { color: var(--text-4); font-size: 12px; }
+
+/* layers legend: which window the graph's traffic is scoped to */
+.legend-window { padding: 2px 12px 4px; font-size: 11px; color: var(--text-3); }
+.legend-window b { color: var(--text-2); font-weight: 600; }
+
 /* =====================================================================
    STAGE: the map is the ground; everything else floats over it
    ===================================================================== */
@@ -810,7 +833,6 @@ button:disabled { cursor: not-allowed; }
   padding: 1px 8px; border-radius: 999px;
 }
 [data-theme="dark"] .pending-chip { background: #3d3316; color: #ffc65c; }
-   with the Account/Window selects and Connect AWS. */
 
 /* Scrollable, padded content area for modal sections below the header. */
 .modal-body { padding: 0 20px 16px; overflow-y: auto; }

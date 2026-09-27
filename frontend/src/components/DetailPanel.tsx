@@ -36,6 +36,7 @@ interface Props {
   node: GraphNode;
   graph: Graph;
   since?: string;
+  until?: string;
   onFocus: (nodeId: string) => void;
   onClose?: () => void;
 }
@@ -229,7 +230,7 @@ function EdgeList({
   );
 }
 
-export function DetailPanel({ node, graph, since, onFocus, onClose }: Props) {
+export function DetailPanel({ node, graph, since, until, onFocus, onClose }: Props) {
   const meta = NODE_TYPE_META[node.node_type];
   const [runs, setRuns] = useState<Run[]>([]);
   const [runsTotal, setRunsTotal] = useState(0);
@@ -251,53 +252,60 @@ export function DetailPanel({ node, graph, since, onFocus, onClose }: Props) {
   const [expandedRun, setExpandedRun] = useState<string | null>(null);
   const [timeline, setTimeline] = useState<RunTimeline | null>(null);
 
+  // UI state resets only when a different node is opened — changing the time
+  // window keeps the user on their current tab and view.
   useEffect(() => {
     setShowAllDecisions(false);
     setShowAllInterventions(false);
     setTab("overview");
-    setExpandedRun(null);
-    setTimeline(null);
     setShowExplorer(false);
     setShowEvalExplorer(false);
     setShowCedarExplorer(false);
     setShowToolsExplorer(false);
     setShowInterventionsExplorer(false);
+  }, [node]);
+
+  // Data follows the node AND the time window.
+  useEffect(() => {
+    setExpandedRun(null); // an expanded run may not exist in the new window
+    setTimeline(null);
     setOwnerRuns([]);
+    const win = { since, until };
     if (node.node_type === "agent") {
-      fetchRuns(node.id, { limit: 50, since }) // 50 for version stats; UI shows the latest 5
+      fetchRuns(node.id, { limit: 50, ...win }) // 50 for version stats; UI shows the latest 5
         .then((p) => { setRuns(p.runs); setRunsTotal(p.total); })
         .catch(() => { setRuns([]); setRunsTotal(0); });
       fetchEvaluations(node.id).then(setEvals).catch(() => setEvals([]));
-      fetchCost(node.id, since).then(setCost).catch(() => setCost(null));
+      fetchCost(node.id, win).then(setCost).catch(() => setCost(null));
     } else {
       setRuns([]); setEvals([]); setCost(null); setRunsTotal(0);
     }
     if (node.node_type === "llm") {
-      fetchLlmStats(node.id, since).then(setLlmStats).catch(() => setLlmStats(null));
+      fetchLlmStats(node.id, win).then(setLlmStats).catch(() => setLlmStats(null));
     } else {
       setLlmStats(null);
     }
     if (node.node_type === "gateway") {
-      fetchCedarDecisions(node.id).then(setDecisions).catch(() => setDecisions([]));
+      fetchCedarDecisions(node.id, undefined, win).then(setDecisions).catch(() => setDecisions([]));
     } else {
       setDecisions([]);
     }
     if (node.node_type === "guardrail") {
       // Match the explorer's window (backend max) so summary counts agree.
-      fetchGuardrailInterventions(node.id, 500).then(setInterventions).catch(() => setInterventions([]));
+      fetchGuardrailInterventions(node.id, 500, win).then(setInterventions).catch(() => setInterventions([]));
     } else {
       setInterventions([]);
     }
     // Caller attribution: who spends through this agent / what this calling
     // client (e.g. Entra ID app registration) spends, per agent.
     if (node.node_type === "agent") {
-      fetchCallerCosts({ agentId: node.id, since }).then(setCallerCosts).catch(() => setCallerCosts(null));
+      fetchCallerCosts({ agentId: node.id, ...win }).then(setCallerCosts).catch(() => setCallerCosts(null));
     } else if (node.node_type === "user_group") {
-      fetchCallerCosts({ caller: node.name, since }).then(setCallerCosts).catch(() => setCallerCosts(null));
+      fetchCallerCosts({ caller: node.name, ...win }).then(setCallerCosts).catch(() => setCallerCosts(null));
     } else {
       setCallerCosts(null);
     }
-  }, [node, since]);
+  }, [node, since, until]);
 
   // Identity traceability: the owning agent's recent runs are the activity
   // record for this identity (every run executes under it).
@@ -313,10 +321,10 @@ export function DetailPanel({ node, graph, since, onFocus, onClose }: Props) {
       setOwnerRuns([]);
       return;
     }
-    fetchRuns(ownerEdge.source, { limit: 5, since })
+    fetchRuns(ownerEdge.source, { limit: 5, since, until })
       .then((p) => setOwnerRuns(p.runs))
       .catch(() => setOwnerRuns([]));
-  }, [node, graph, since]);
+  }, [node, graph, since, until]);
 
   const toggleRun = (runId: string) => {
     if (expandedRun === runId) {
@@ -661,6 +669,8 @@ export function DetailPanel({ node, graph, since, onFocus, onClose }: Props) {
         <CedarDecisionsExplorer
           gatewayId={node.id}
           gatewayName={node.name}
+          since={since}
+          until={until}
           onClose={() => setShowCedarExplorer(false)}
         />
       )}
@@ -930,6 +940,8 @@ export function DetailPanel({ node, graph, since, onFocus, onClose }: Props) {
         <GuardrailInterventionsExplorer
           guardrailId={node.id}
           guardrailName={node.name}
+          since={since}
+          until={until}
           onClose={() => setShowInterventionsExplorer(false)}
         />
       )}
@@ -1073,6 +1085,7 @@ export function DetailPanel({ node, graph, since, onFocus, onClose }: Props) {
           agentId={node.id}
           agentName={node.name}
           since={since}
+          until={until}
           onClose={() => setShowExplorer(false)}
         />
       )}

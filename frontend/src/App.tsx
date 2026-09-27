@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchGraph, fetchMe, fetchNamespaces } from "./api";
 import { signOut } from "./auth";
 import { AccessRequestForm } from "./components/AccessRequestForm";
@@ -20,10 +20,22 @@ import {
   type NodeType,
 } from "./types";
 
-type Timeframe = "24h" | "7d" | "30d" | "all";
+type Timeframe = "24h" | "7d" | "30d" | "all" | "custom";
+
+/** Local calendar date as YYYY-MM-DD (the value format of <input type="date">). */
+function isoDay(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+const fmtDay = (day: string) =>
+  new Date(`${day}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 
 export default function App() {
   const [graph, setGraph] = useState<Graph | null>(null);
+  // Bumped per landed graph: remounts the canvas so React Flow re-measures
+  // nodes (fresh node objects drop its cached handle bounds, and nodes whose
+  // size didn't change are never re-observed — edges would silently vanish).
+  const [graphVersion, setGraphVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<GraphNode | null>(null);
   const [focusNodes, setFocusNodes] = useState<CatalogEntry[]>([]);
@@ -40,6 +52,10 @@ export default function App() {
   const [showRequestsModal, setShowRequestsModal] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [timeframe, setTimeframe] = useState<Timeframe>("30d");
+  // Custom range, as local calendar days (inclusive). Defaults to the last week.
+  const today = isoDay(new Date());
+  const [customFrom, setCustomFrom] = useState(() => isoDay(new Date(Date.now() - 7 * 86400000)));
+  const [customTo, setCustomTo] = useState(today);
   const [layersOpen, setLayersOpen] = useState(true);
 
   useEffect(() => {
@@ -51,12 +67,29 @@ export default function App() {
   // A viewer with no grants sees the access-request form instead of the graph.
   const noAccess = !!me && me.role === "viewer" && me.namespaces.length === 0;
 
-  // Observability metrics (costs, runs, LLM stats) are scoped to this window.
-  const since = useMemo(() => {
-    const hours = { "24h": 24, "7d": 168, "30d": 720 }[timeframe as Exclude<Timeframe, "all">];
-    if (timeframe === "all" || !hours) return undefined;
-    return new Date(Date.now() - hours * 3600 * 1000).toISOString();
-  }, [timeframe]);
+  // The time window scopes everything time-bound: the lineage graph's observed
+  // traffic, runs, costs, model stats, Cedar decisions and guardrail checks.
+  // Custom ranges are whole local days, inclusive at both ends.
+  const { since, until, windowLabel } = useMemo(() => {
+    if (timeframe === "custom") {
+      const [a, b] = customFrom <= customTo ? [customFrom, customTo] : [customTo, customFrom];
+      return {
+        since: new Date(`${a}T00:00:00`).toISOString(),
+        until: new Date(`${b}T23:59:59.999`).toISOString(),
+        windowLabel:
+          a === b ? fmtDay(a)
+          : a.slice(0, 4) === b.slice(0, 4)
+            // same year: state it once ("Aug 20 – Sep 6, 2026")
+            ? `${new Date(`${a}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })} – ${fmtDay(b)}`
+            : `${fmtDay(a)} – ${fmtDay(b)}`,
+      };
+    }
+    const hours = { "24h": 24, "7d": 168, "30d": 720 }[timeframe as "24h" | "7d" | "30d"];
+    if (timeframe === "all" || !hours) return { since: undefined, until: undefined, windowLabel: "all time" };
+    const label = { "24h": "last 24 hours", "7d": "last 7 days", "30d": "last 30 days" }[timeframe as "24h" | "7d" | "30d"];
+    return { since: new Date(Date.now() - hours * 3600 * 1000).toISOString(), until: undefined, windowLabel: label };
+  }, [timeframe, customFrom, customTo]);
+  const windowed = timeframe !== "all";
 
   const toggleType = (t: NodeType) =>
     setHiddenTypes((prev) => {
@@ -84,14 +117,22 @@ export default function App() {
     return { nodes, edges };
   }, [graph, hiddenTypes, hideIsolated]);
 
+  // Only the latest request may land: rapid window/focus changes overlap, and
+  // an older response must never overwrite a newer one.
+  const graphReq = useRef(0);
   const load = useCallback((nodeIds: string[]) => {
-    fetchGraph(nodeIds, 5, namespace || undefined)
+    const req = ++graphReq.current;
+    fetchGraph(nodeIds, 5, namespace || undefined, { since, until })
       .then((g) => {
+        if (req !== graphReq.current) return;
         setGraph(g);
+        setGraphVersion((v) => v + 1);
         setError(null);
       })
-      .catch((e: Error) => setError(e.message));
-  }, [namespace]);
+      .catch((e: Error) => {
+        if (req === graphReq.current) setError(e.message);
+      });
+  }, [namespace, since, until]);
 
   // Focus priority: explicit node focus (from detail panel) > catalog selection.
   // Nothing selected -> empty state (unless the user asked for the full graph).
@@ -136,6 +177,7 @@ export default function App() {
             <option value="7d">Last 7 days</option>
             <option value="30d">Last 30 days</option>
             <option value="all">All time</option>
+            <option value="custom">Custom range…</option>
           </select>
         </label>
         <ThemeToggle />
@@ -201,7 +243,8 @@ export default function App() {
           <span className="search-summary">
             <span className="metric">{focusNodes.length}</span> in focus
             {selectedAgents.length > 0 && (
-              <> · LLM cost <span className="metric">${totalSelectedCost.toFixed(2)}</span></>
+              // Catalog totals are all-time; say so when a window is active.
+              <> · {windowed ? "all-time " : ""}LLM cost <span className="metric">${totalSelectedCost.toFixed(2)}</span></>
             )}
           </span>
         )}
@@ -215,6 +258,32 @@ export default function App() {
             Clear graph
           </button>
         )}
+        {/* Custom time range: scopes the graph's observed traffic and every
+            time-bound metric. Sits with the search — both scope what you see. */}
+        {timeframe === "custom" && (
+          <fieldset className="range-picker" aria-label="Custom time range">
+            <label>
+              <span>From</span>
+              <input
+                type="date"
+                value={customFrom}
+                max={customTo}
+                onChange={(e) => e.target.value && setCustomFrom(e.target.value)}
+              />
+            </label>
+            <span className="range-arrow" aria-hidden>→</span>
+            <label>
+              <span>To</span>
+              <input
+                type="date"
+                value={customTo}
+                min={customFrom}
+                max={today}
+                onChange={(e) => e.target.value && setCustomTo(e.target.value)}
+              />
+            </label>
+          </fieldset>
+        )}
       </div>
 
       <div className="stage">
@@ -223,6 +292,7 @@ export default function App() {
             node={selected}
             graph={graph}
             since={since}
+            until={until}
             onFocus={(id) => setFocusNodeId(id)}
             onClose={() => setSelected(null)}
           />
@@ -242,7 +312,7 @@ export default function App() {
             <>
           {error && <div className="error">Backend unreachable: {error}</div>}
           {visibleGraph ? (
-            <LineageGraph graph={visibleGraph} onSelect={setSelected} />
+            <LineageGraph key={graphVersion} graph={visibleGraph} onSelect={setSelected} />
           ) : (
             !error && (
               <div className="empty-state">
@@ -290,11 +360,14 @@ export default function App() {
                 ))}
               </ul>
               <div className="legend-divider" />
+              <div className="legend-window" title="Observed traffic on the graph is scoped to this window. Declared edges reflect current configuration.">
+                Traffic · <b>{windowLabel}</b>
+              </div>
               <ul className="legend legend-edges">
                 <li><span className="edge-sample solid-amber" /> observed, undeclared</li>
                 <li><span className="edge-sample solid-red" /> has Cedar denials</li>
                 <li><span className="edge-sample solid-green" /> declared &amp; observed</li>
-                <li><span className="edge-sample dashed" /> declared, never used</li>
+                <li><span className="edge-sample dashed" /> {windowed ? "declared, unused in window" : "declared, never used"}</li>
               </ul>
               <div className="legend-divider" />
               <label className="layer-toggle legend-option">

@@ -251,7 +251,7 @@ against the control plane that made it. What bounds the risk:
 | `POST /api/v1/nodes`, `POST /api/v1/edges` | admin | Register declared lineage (catalog nodes, permissions) |
 | `POST /api/v1/evaluations` | admin | Record evaluation results |
 | `DELETE /api/v1/namespaces/{ns}` | admin | Purge one namespace (e.g. the demo dataset) |
-| `GET /api/v1/lineage/graph?node_id=&depth=` | any | Directional lineage graph; repeat `node_id` for multi-focus |
+| `GET /api/v1/lineage/graph?node_id=&depth=&since=&until=` | any | Directional lineage graph; repeat `node_id` for multi-focus; `since`/`until` window the observed traffic |
 | `GET /api/v1/search?q=` | any | Cross-type catalog search (agents, tools, skills, gateways, LLMs…) |
 | `GET /api/v1/runs`, `GET /api/v1/runs/{id}/timeline` | any | Paginated run history with cost rollups; per-run trajectory |
 | `GET /api/v1/costs/{agent_id}`, `GET /api/v1/llm-stats` | any | Cost attribution per agent / per model (time-windowed) |
@@ -263,12 +263,22 @@ against the control plane that made it. What bounds the risk:
 "any" = any authenticated user; viewer reads are additionally scoped to their
 granted accounts. Locally (auth disabled) all endpoints are open.
 
+The graph and every time-scoped endpoint (runs, costs, LLM stats, Cedar decisions,
+guardrail interventions) accept optional ISO-8601 `since` and `until` bounds; a
+reversed range returns `400`.
+
 ## Notes
 
 - Cost is derived from token usage via each LLM node's `pricing_per_1k` facet, with a
   built-in pricing catalog fallback; `POST /api/v1/costs/recompute` backfills.
 - The spans/eval lookback windows default to 30 days
   (`AGENT_LINEAGE_SPANS_WINDOW_HOURS`, `AGENT_LINEAGE_EVAL_RESULTS_WINDOW_HOURS`).
+- The time window (24h / 7d / 30d / custom From–To) is applied to the lineage graph by
+  replaying the lineage events inside the window: observed edges with no traffic in the
+  window are hidden, declared-and-observed edges fall back to "declared, unused in window",
+  and call counts and Cedar allow/deny are recomputed for the window. Declared edges
+  reflect the current configuration (config history isn't stored). "All time" shows the
+  cumulative graph.
 - Streaming ingestion skeleton: `integrations/otel_translator/handler.py`
   (CloudWatch Logs subscription → lineage events), for when pull-based sync isn't fresh enough.
 

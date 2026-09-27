@@ -10,6 +10,7 @@ interface Props {
   agentId: string;
   agentName: string;
   since?: string;
+  until?: string;
   onClose: () => void;
 }
 
@@ -22,7 +23,7 @@ function duration(r: Run): string {
 
 /** Paginated, filterable run history for one agent. A run is a single
  *  end-to-end invocation (session); all sub-agent activity shares its runId. */
-export function RunsExplorer({ agentId, agentName, since, onClose }: Props) {
+export function RunsExplorer({ agentId, agentName, since, until, onClose }: Props) {
   const [runs, setRuns] = useState<Run[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -36,6 +37,7 @@ export function RunsExplorer({ agentId, agentName, since, onClose }: Props) {
     fetchRuns(agentId, {
       state: state === "ALL" ? undefined : state,
       since,
+      until,
       limit: PAGE_SIZE,
       offset: page * PAGE_SIZE,
     })
@@ -48,7 +50,7 @@ export function RunsExplorer({ agentId, agentName, since, onClose }: Props) {
         setTotal(0);
       })
       .finally(() => setLoading(false));
-  }, [agentId, state, page, since]);
+  }, [agentId, state, page, since, until]);
 
   const toggle = (runId: string) => {
     if (expanded === runId) {

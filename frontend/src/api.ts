@@ -66,35 +66,48 @@ export async function syncAws(body: {
   return res.json() as Promise<AwsSyncResult>;
 }
 
+/** Time window applied to every time-scoped query. Both bounds optional;
+ *  ISO-8601 instants. An empty window means all time. */
+export interface TimeWindow {
+  since?: string;
+  until?: string;
+}
+
+function withWindow(params: URLSearchParams, w?: TimeWindow): URLSearchParams {
+  if (w?.since) params.set("since", w.since);
+  if (w?.until) params.set("until", w.until);
+  return params;
+}
+
 export function fetchGraph(
   nodeIds: string[] = [],
   depth = 5,
   namespace?: string,
+  window?: TimeWindow,
 ): Promise<Graph> {
   const params = new URLSearchParams();
   nodeIds.forEach((id) => params.append("node_id", id));
   params.set("depth", String(depth));
   if (namespace) params.set("namespace", namespace);
-  return get<Graph>(`/lineage/graph?${params}`);
+  return get<Graph>(`/lineage/graph?${withWindow(params, window)}`);
 }
 
 export function fetchRuns(
   agentId?: string,
-  opts: { state?: string; limit?: number; offset?: number; since?: string } = {},
+  opts: { state?: string; limit?: number; offset?: number } & TimeWindow = {},
 ): Promise<RunsPage> {
   const params = new URLSearchParams();
   if (agentId) params.set("agent_id", agentId);
   if (opts.state) params.set("state", opts.state);
-  if (opts.since) params.set("since", opts.since);
+  withWindow(params, opts);
   params.set("limit", String(opts.limit ?? 25));
   params.set("offset", String(opts.offset ?? 0));
   return get<RunsPage>(`/runs?${params}`);
 }
 
-export function fetchLlmStats(llmId: string, since?: string): Promise<LlmStats> {
+export function fetchLlmStats(llmId: string, window?: TimeWindow): Promise<LlmStats> {
   const params = new URLSearchParams({ llm_id: llmId });
-  if (since) params.set("since", since);
-  return get<LlmStats>(`/llm-stats?${params}`);
+  return get<LlmStats>(`/llm-stats?${withWindow(params, window)}`);
 }
 
 export function fetchNamespaces(): Promise<NamespaceInfo[]> {
@@ -164,30 +177,30 @@ export function fetchEvaluations(agentId: string): Promise<Evaluation[]> {
   return get<Evaluation[]>(`/evaluations?agent_id=${encodeURIComponent(agentId)}`);
 }
 
-export function fetchCost(agentId: string, since?: string): Promise<AgentCost> {
-  const params = since ? `?since=${encodeURIComponent(since)}` : "";
-  return get<AgentCost>(`/costs/${agentId}${params}`);
+export function fetchCost(agentId: string, window?: TimeWindow): Promise<AgentCost> {
+  const qs = withWindow(new URLSearchParams(), window).toString();
+  return get<AgentCost>(`/costs/${agentId}${qs ? `?${qs}` : ""}`);
 }
 
 export function fetchCallerCosts(opts: {
   agentId?: string;
   caller?: string;
-  since?: string;
-}): Promise<CallerCosts> {
+} & TimeWindow): Promise<CallerCosts> {
   const p = new URLSearchParams();
   if (opts.agentId) p.set("agent_id", opts.agentId);
   if (opts.caller) p.set("caller", opts.caller);
-  if (opts.since) p.set("since", opts.since);
+  withWindow(p, opts);
   return get<CallerCosts>(`/costs/by-caller?${p.toString()}`);
 }
 
 export function fetchGuardrailInterventions(
   guardrailId: string,
   limit?: number,
+  window?: TimeWindow,
 ): Promise<GuardrailIntervention[]> {
-  return get<GuardrailIntervention[]>(
-    `/guardrail-interventions?guardrail_id=${encodeURIComponent(guardrailId)}${limit ? `&limit=${limit}` : ""}`,
-  );
+  const params = new URLSearchParams({ guardrail_id: guardrailId });
+  if (limit) params.set("limit", String(limit));
+  return get<GuardrailIntervention[]>(`/guardrail-interventions?${withWindow(params, window)}`);
 }
 
 export function fetchRunTimeline(runId: string): Promise<RunTimeline> {
@@ -197,8 +210,9 @@ export function fetchRunTimeline(runId: string): Promise<RunTimeline> {
 export function fetchCedarDecisions(
   gatewayId: string,
   decision?: "ALLOW" | "DENY",
+  window?: TimeWindow,
 ): Promise<CedarDecision[]> {
   const params = new URLSearchParams({ gateway_id: gatewayId });
   if (decision) params.set("decision", decision);
-  return get<CedarDecision[]>(`/cedar-decisions?${params}`);
+  return get<CedarDecision[]>(`/cedar-decisions?${withWindow(params, window)}`);
 }

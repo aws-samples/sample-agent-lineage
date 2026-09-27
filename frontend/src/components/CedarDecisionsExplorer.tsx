@@ -10,19 +10,23 @@ const PAGE_SIZE = 25;
 interface Props {
   gatewayId: string;
   gatewayName: string;
+  since?: string;
+  until?: string;
   onClose: () => void;
 }
 
 /** Full Cedar authorization decision log for one gateway, presented like the
  *  runs explorer: filterable, paginated, audit-ready. */
-export function CedarDecisionsExplorer({ gatewayId, gatewayName, onClose }: Props) {
+export function CedarDecisionsExplorer({ gatewayId, gatewayName, since, until, onClose }: Props) {
   const [decisions, setDecisions] = useState<CedarDecision[]>([]);
   const [filter, setFilter] = useState<Filter>("ALL");
   const [page, setPage] = useState(0);
 
   useEffect(() => {
-    fetchCedarDecisions(gatewayId).then(setDecisions).catch(() => setDecisions([]));
-  }, [gatewayId]);
+    fetchCedarDecisions(gatewayId, undefined, { since, until })
+      .then(setDecisions)
+      .catch(() => setDecisions([]));
+  }, [gatewayId, since, until]);
 
   const visible = decisions.filter((d) => filter === "ALL" || d.decision === filter);
   const pages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));

@@ -16,23 +16,25 @@ const ACTION_CHIP: Record<string, string> = {
 interface Props {
   guardrailId: string;
   guardrailName: string;
+  since?: string;
+  until?: string;
   onClose: () => void;
 }
 
 /** Full intervention log for one guardrail, presented like the Cedar decisions
  *  explorer: filterable by action and category, paginated, audit-ready. Every
  *  check the guardrail performed is traceable to its run, agent and model. */
-export function GuardrailInterventionsExplorer({ guardrailId, guardrailName, onClose }: Props) {
+export function GuardrailInterventionsExplorer({ guardrailId, guardrailName, since, until, onClose }: Props) {
   const [interventions, setInterventions] = useState<GuardrailIntervention[]>([]);
   const [filter, setFilter] = useState<Filter>("ALL");
   const [category, setCategory] = useState<string>("");
   const [page, setPage] = useState(0);
 
   useEffect(() => {
-    fetchGuardrailInterventions(guardrailId, 500)
+    fetchGuardrailInterventions(guardrailId, 500, { since, until })
       .then(setInterventions)
       .catch(() => setInterventions([]));
-  }, [guardrailId]);
+  }, [guardrailId, since, until]);
 
   const categories = useMemo(
     () => [...new Set(interventions.map((i) => i.category).filter(Boolean))].sort(),
