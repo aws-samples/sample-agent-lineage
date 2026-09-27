@@ -32,11 +32,11 @@ export function TabPill({ layoutId }: { layoutId: string }) {
  * key across re-renders, so only genuinely new rows (a new page, filter or
  * window) animate. Pair with className "row-in".
  */
-export function rowIn(i: number) {
+export function rowIn(i: number, stagger = 0.018) {
   return {
     initial: { opacity: 0, y: 4 },
     animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.2, delay: Math.min(i, 12) * 0.018 },
+    transition: { duration: 0.2, delay: Math.min(i, 12) * stagger },
   } as const;
 }
 

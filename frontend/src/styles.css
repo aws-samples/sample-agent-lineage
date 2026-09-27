@@ -635,9 +635,12 @@ button:disabled { cursor: not-allowed; }
 }
 .run-row:hover { background: var(--surface-2); }
 .expand-caret { margin-left: auto; color: var(--text-4); }
-.timeline {
-  list-style: none; margin: 6px 0 4px; padding-left: 10px;
-  border-left: 2px solid var(--border);
+.timeline { position: relative; margin: 6px 0 4px; padding-left: 10px; }
+.timeline-list { list-style: none; margin: 0; padding: 0; }
+/* the trace rail (drawn top-down by Motion; static under reduced motion) */
+.timeline-rail {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+  background: var(--border); border-radius: 1px; transform-origin: top;
 }
 .timeline-step { padding: 6px 0 6px 8px !important; border-bottom: none !important; }
 .timeline-head { display: flex; align-items: center; gap: 6px; }

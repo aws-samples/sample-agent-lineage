@@ -2,7 +2,12 @@ import { useId, useState } from "react";
 import type { RunTimeline } from "../types";
 import { RunTrajectoryGraph } from "./RunTrajectoryGraph";
 import { Icon } from "./Icon";
-import { TabPill } from "./Motion";
+import { m } from "motion/react";
+import { rowIn, TabPill } from "./Motion";
+
+/** Trajectory steps arrive one after another, slower than table rows so
+ *  the sequence reads as a sequence. */
+const STEP_STAGGER = 0.045;
 
 interface Props {
   timeline: RunTimeline;
@@ -18,7 +23,12 @@ export function RunTimelineView({ timeline, traceUrl }: Props) {
   const firstError = timeline.steps.find((s) => s.error)?.error;
 
   return (
-    <div className="timeline-wrap">
+    <m.div
+      className="timeline-wrap"
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22 }}
+    >
       <div className="timeline-toolbar">
         <div className="timeline-cost">
           run cost <b>${timeline.cost_usd.toFixed(4)}</b> ·{" "}
@@ -54,11 +64,22 @@ export function RunTimelineView({ timeline, traceUrl }: Props) {
       )}
 
       {view === "graph" ? (
-        <RunTrajectoryGraph timeline={timeline} />
+        <m.div key="graph" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <RunTrajectoryGraph timeline={timeline} />
+        </m.div>
       ) : (
-        <ol className="timeline">
+        <div className="timeline" key="steps">
+          {/* the rail draws down the trace while the steps arrive in order */}
+          <m.span
+            className="timeline-rail"
+            aria-hidden
+            initial={{ scaleY: 0 }}
+            animate={{ scaleY: 1 }}
+            transition={{ duration: 0.25 + Math.min(timeline.steps.length, 12) * STEP_STAGGER, ease: "easeOut" }}
+          />
+          <ol className="timeline-list">
           {timeline.steps.map((s, i) => (
-            <li key={i} className="timeline-step">
+            <m.li key={i} className="timeline-step row-in" {...rowIn(i, STEP_STAGGER)}>
               <div className="timeline-head">
                 <span className={`step-type step-${s.event_type.toLowerCase()}`}>
                   {s.event_type}
@@ -110,10 +131,11 @@ export function RunTimelineView({ timeline, traceUrl }: Props) {
                   )}
                 </div>
               )}
-            </li>
+            </m.li>
           ))}
-        </ol>
+          </ol>
+        </div>
       )}
-    </div>
+    </m.div>
   );
 }
