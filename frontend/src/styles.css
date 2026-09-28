@@ -1104,6 +1104,21 @@ button:disabled { cursor: not-allowed; }
 }
 .landing-signin-quiet:hover:not(:disabled) { background: var(--surface-3); }
 .landing-auth-note { font-size: 12px; color: var(--text-3); }
+/* secondary path: request viewer access */
+.landing-request {
+  display: flex; flex-direction: column; gap: 4px; margin-top: 8px;
+  padding-top: 12px; border-top: 1px solid var(--hairline); max-width: 46ch;
+}
+.landing-request-link {
+  align-self: flex-start; padding: 0; border: none; background: none; cursor: pointer;
+  font: inherit; font-size: 13.5px; font-weight: 600; color: var(--text);
+  text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--text-4);
+}
+.landing-request-link:hover:not(:disabled) { text-decoration-color: var(--text); }
+.landing-request-link:disabled { opacity: 0.6; }
+.landing-request-note { font-size: 12px; line-height: 1.5; color: var(--text-3); }
+.landing-request-note a { color: var(--text-2); }
+.landing-request-note a:hover { color: var(--text); }
 
 /* ---- hero stage: subtle depth, no WebGL ---- */
 .landing-stage { perspective: 1400px; min-width: 0; }

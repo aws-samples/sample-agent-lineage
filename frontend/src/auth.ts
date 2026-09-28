@@ -12,6 +12,28 @@ interface AuthConfig {
   region: string;
 }
 
+/* Post-login intent: lets a landing-page action say where the user wanted to
+ * go ("request viewer access"). sessionStorage survives the same-tab hosted-UI
+ * round trip; the value is a fixed enum, never a URL, so it can't redirect. */
+const INTENT_KEY = "al_post_login_intent";
+export type PostLoginIntent = "request-access";
+
+export function setPostLoginIntent(intent: PostLoginIntent): void {
+  sessionStorage.setItem(INTENT_KEY, intent);
+}
+
+/** Read and clear the intent (one-shot). */
+/** Read the intent without clearing it (pure: safe in a state initializer). */
+export function peekPostLoginIntent(): PostLoginIntent | null {
+  const v = sessionStorage.getItem(INTENT_KEY);
+  return v === "request-access" ? v : null;
+}
+
+/** Consume the intent so a later reload doesn't reopen the form. */
+export function clearPostLoginIntent(): void {
+  sessionStorage.removeItem(INTENT_KEY);
+}
+
 export function getToken(): string | null {
   const token = localStorage.getItem(TOKEN_KEY);
   const expiry = Number(localStorage.getItem(EXPIRY_KEY) ?? 0);

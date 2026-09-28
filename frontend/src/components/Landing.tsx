@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { setPostLoginIntent } from "../auth";
 import { Icon } from "./Icon";
 import { LogoLockup } from "./Logo";
 import { REPO_URL } from "./Markdown";
@@ -23,6 +24,13 @@ export function Landing({ mode, onEnter }: Props) {
   const go = async () => {
     setBusy(true);
     try { await onEnter(); } finally { setBusy(false); }
+  };
+  // Viewer access is requested from inside the app (requests are tied to a
+  // signed-in identity, and accounts are admin-created), so this signs in and
+  // opens the request form on arrival.
+  const requestAccess = () => {
+    setPostLoginIntent("request-access");
+    void go();
   };
 
   return (
@@ -60,6 +68,15 @@ export function Landing({ mode, onEnter }: Props) {
                 ? "Single sign-on via Amazon Cognito. Read-only against your account."
                 : "Local mode — authentication disabled."}
             </span>
+            <div className="landing-request">
+              <button className="landing-request-link" onClick={requestAccess} disabled={busy}>
+                Need viewer access? Request it →
+              </button>
+              <span className="landing-request-note">
+                Sign in with the account your platform admin created, then choose the
+                AWS account you need. <a href="#/docs#roles-and-trust-model">How access works</a>
+              </span>
+            </div>
           </div>
         </div>
 
