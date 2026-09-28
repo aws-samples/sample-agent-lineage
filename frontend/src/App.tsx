@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchGraph, fetchMe, fetchNamespaces } from "./api";
-import { clearPostLoginIntent, peekPostLoginIntent, signOut } from "./auth";
+import { signOut } from "./auth";
 import { AccessRequestForm } from "./components/AccessRequestForm";
 import { AccessRequestsModal } from "./components/AccessRequestsModal";
 import { AwsConnectModal } from "./components/AwsConnectModal";
@@ -53,12 +53,7 @@ export default function App() {
   // "" = all accounts in scope; otherwise one selected namespace.
   const [namespace, setNamespace] = useState<string>("");
   const [showRequestsModal, setShowRequestsModal] = useState(false);
-  // Opened directly when the user arrived via the landing page's
-  // "Request viewer access" link.
-  const [showRequestForm, setShowRequestForm] = useState(
-    () => peekPostLoginIntent() === "request-access",
-  );
-  useEffect(() => clearPostLoginIntent(), []);
+  const [showRequestForm, setShowRequestForm] = useState(false);
   const [timeframe, setTimeframe] = useState<Timeframe>("30d");
   // Custom range, as local calendar days (inclusive). Defaults to the last week.
   const today = isoDay(new Date());
