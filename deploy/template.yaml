@@ -50,9 +50,20 @@ Parameters:
       CloudFront edge nodes can reach it. Find it manually with:
       aws ec2 describe-managed-prefix-lists --filters
       Name=prefix-list-name,Values=com.amazonaws.global.cloudfront.origin-facing
+  EdgeGatePublicKeyPem:
+    Type: String
+    Default: ""
+    Description: >-
+      Optional edge gate (signed-cookie SSO in front of the whole site). PEM
+      public key whose private half is held by your external cookie signer.
+      When set, CloudFront requires signed cookies on every path except
+      /error/*, and a 403 serves /error/403.html (the signer's redirect page,
+      uploaded by deploy.sh). Empty = no gate. Cognito sign-in and roles are
+      unchanged behind the gate.
 
 Conditions:
   CreateNetwork: !Equals [!Ref ExistingVpcId, ""]
+  UseEdgeGate: !Not [!Equals [!Ref EdgeGatePublicKeyPem, ""]]
 
 Resources:
   # ---------------- Network (only when no existing VPC is supplied) ----------------
@@ -453,6 +464,25 @@ Resources:
           return req;
         }
 
+  # ---------------- Optional edge gate (signed cookies) ----------------
+  EdgeGatePublicKey:
+    Type: AWS::CloudFront::PublicKey
+    Condition: UseEdgeGate
+    Properties:
+      PublicKeyConfig:
+        CallerReference: !Sub "agent-lineage-edge-gate-${AWS::AccountId}"
+        Name: !Sub "agent-lineage-edge-gate-${AWS::AccountId}"
+        Comment: Verifies signed cookies issued by the external edge-gate signer
+        EncodedKey: !Ref EdgeGatePublicKeyPem
+
+  EdgeGateKeyGroup:
+    Type: AWS::CloudFront::KeyGroup
+    Condition: UseEdgeGate
+    Properties:
+      KeyGroupConfig:
+        Name: !Sub "agent-lineage-edge-gate-${AWS::AccountId}"
+        Items: [!Ref EdgeGatePublicKey]
+
   Distribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -479,6 +509,7 @@ Resources:
           ViewerProtocolPolicy: redirect-to-https
           # Managed policy: CachingOptimized
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          TrustedKeyGroups: !If [UseEdgeGate, [!Ref EdgeGateKeyGroup], !Ref AWS::NoValue]
           FunctionAssociations:
             - EventType: viewer-request
               FunctionARN: !GetAtt SpaRewriteFunction.FunctionMetadata.FunctionARN
@@ -490,10 +521,31 @@ Resources:
             # Managed policies: CachingDisabled + AllViewerExceptHostHeader
             CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
             OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
-        # No distribution-wide CustomErrorResponses: they apply to EVERY origin,
-        # so they also rewrote the API's own 403/404 JSON into index.html with a
-        # 200. App-route fallback is handled for the S3 behavior only, by
-        # SpaRewriteFunction. (Also frees the 403 page for Midway/CloudFrontSigner.)
+            # The API is gated too, not just the page.
+            TrustedKeyGroups: !If [UseEdgeGate, [!Ref EdgeGateKeyGroup], !Ref AWS::NoValue]
+          # The signer's redirect page must load WITHOUT cookies (it's how a
+          # signed-out user gets them), so /error/* is the one ungated path.
+          # It holds only that static page.
+          - !If
+            - UseEdgeGate
+            - PathPattern: "/error/*"
+              TargetOriginId: frontend-s3
+              ViewerProtocolPolicy: redirect-to-https
+              CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad  # CachingDisabled
+            - !Ref AWS::NoValue
+        # No 403/404 -> index.html rewrite: distribution-wide error responses
+        # apply to EVERY origin and turned the API's own 403/404 JSON into the
+        # app shell with a 200. App-route fallback is SpaRewriteFunction (S3
+        # behavior only). With the edge gate on, a 403 (missing/expired signed
+        # cookies) serves the signer's redirect page, kept at 403 and never
+        # cached so a fresh session isn't sent back to sign-in.
+        CustomErrorResponses: !If
+          - UseEdgeGate
+          - - ErrorCode: 403
+              ResponseCode: 403
+              ResponsePagePath: /error/403.html
+              ErrorCachingMinTTL: 0
+          - !Ref AWS::NoValue
         ViewerCertificate:
           CloudFrontDefaultCertificate: true
 
@@ -508,6 +560,17 @@ Resources:
             Principal: { Service: cloudfront.amazonaws.com }
             Action: s3:GetObject
             Resource: !Sub "${FrontendBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
+          # Lets a missing object come back as 404, not 403. Without it, under
+          # the edge gate a signed-in user asking for a missing file (e.g. a
+          # stale asset hash after a deploy) would be bounced to sign-in.
+          # Same distribution-only condition; lists this static-site bucket only.
+          - Effect: Allow
+            Principal: { Service: cloudfront.amazonaws.com }
+            Action: s3:ListBucket
+            Resource: !GetAtt FrontendBucket.Arn
             Condition:
               StringEquals:
                 AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
@@ -582,6 +645,9 @@ Resources:
       TokenValidityUnits: { AccessToken: hours, IdToken: hours }
 
 Outputs:
+  EdgeGate:
+    Description: Whether the signed-cookie edge gate is in front of the site
+    Value: !If [UseEdgeGate, enabled, disabled]
   AppUrl:
     Value: !Sub "https://${Distribution.DomainName}"
   DistributionId:

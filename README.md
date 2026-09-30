@@ -128,6 +128,24 @@ What the stack secures: private S3 (OAC-only), ALB that answers 403 without the
 CloudFront origin-verify header, Cognito JWT required on every API call, EFS
 encrypted, and a read-only task IAM role for all AWS syncing.
 
+### Optional: SSO edge gate in front of the site
+
+To require your organisation's single sign-on before anyone reaches the app
+(pages *and* API), use a CloudFront signed-cookie signer. Cognito sign-in and
+the admin/viewer roles are unchanged behind it.
+
+1. Put two files in `deploy/edge-gate/` (gitignored — they are
+   deployment-specific and never committed):
+   - `public-key.pem` — the public half of the signer's cookie-signing key
+   - `403.html` — the signer's redirect page for signed-out users
+2. Run `./deploy/deploy.sh <region>`. It adds a CloudFront key group, requires
+   signed cookies on every path except `/error/*`, and serves `403.html` on a
+   403. It refuses to enable the gate without the page.
+
+Redeploys keep the gate on even if the files are absent; turn it off
+explicitly with `EDGE_GATE=off ./deploy/deploy.sh <region>`. When a gate
+session lapses mid-use, the app reloads into the signer's sign-in.
+
 ## Sync role and required permissions
 
 The sync is strictly read-only. The deployed stack creates the role automatically
