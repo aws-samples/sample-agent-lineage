@@ -432,6 +432,27 @@ Resources:
         SigningBehavior: always
         SigningProtocol: sigv4
 
+  # App-route fallback for the static site only (never /api/*): a path whose
+  # last segment has no file extension is an app route, served the shell.
+  # Real assets (.js, .css, .png, .svg...) pass through unchanged.
+  SpaRewriteFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub "agent-lineage-spa-${AWS::AccountId}"
+      AutoPublish: true
+      FunctionConfig:
+        Comment: Serve index.html for extensionless app routes (static site only)
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |
+        function handler(event) {
+          var req = event.request;
+          var last = req.uri.split('/').pop();
+          if (req.uri !== '/' && last.indexOf('.') === -1) {
+            req.uri = '/index.html';
+          }
+          return req;
+        }
+
   Distribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -458,6 +479,9 @@ Resources:
           ViewerProtocolPolicy: redirect-to-https
           # Managed policy: CachingOptimized
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt SpaRewriteFunction.FunctionMetadata.FunctionARN
         CacheBehaviors:
           - PathPattern: "/api/*"
             TargetOriginId: api-alb
@@ -466,14 +490,10 @@ Resources:
             # Managed policies: CachingDisabled + AllViewerExceptHostHeader
             CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
             OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
-        CustomErrorResponses:
-          # SPA routing: unknown paths serve the app shell.
-          - ErrorCode: 403
-            ResponseCode: 200
-            ResponsePagePath: /index.html
-          - ErrorCode: 404
-            ResponseCode: 200
-            ResponsePagePath: /index.html
+        # No distribution-wide CustomErrorResponses: they apply to EVERY origin,
+        # so they also rewrote the API's own 403/404 JSON into index.html with a
+        # 200. App-route fallback is handled for the S3 behavior only, by
+        # SpaRewriteFunction. (Also frees the 403 page for Midway/CloudFrontSigner.)
         ViewerCertificate:
           CloudFrontDefaultCertificate: true
 
