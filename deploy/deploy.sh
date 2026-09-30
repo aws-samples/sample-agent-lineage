@@ -102,47 +102,6 @@ else
   echo "==> Network: creating a NEW VPC (pass vpc-id + subnets to reuse an existing one)"
 fi
 
-# Optional edge gate: signed-cookie SSO in front of the whole site (CloudFront
-# TrustedKeyGroups + a 403 page that sends signed-out users to the signer).
-# Inputs live in deploy/edge-gate/ (gitignored, never committed):
-#   public-key.pem  public half of the signer's cookie-signing key
-#   403.html        the signer's customized redirect page
-# Override the paths with EDGE_GATE_PUBLIC_KEY_FILE / EDGE_GATE_403_PAGE.
-# Once on, redeploys KEEP the gate even without the files (a missing
-# parameter would otherwise reset to "" and silently remove it); turn it off
-# explicitly with EDGE_GATE=off.
-EDGE_DIR="$ROOT/deploy/edge-gate"
-EDGE_KEY_FILE="${EDGE_GATE_PUBLIC_KEY_FILE:-$EDGE_DIR/public-key.pem}"
-EDGE_PAGE_FILE="${EDGE_GATE_403_PAGE:-$EDGE_DIR/403.html}"
-STORED_EDGE_KEY=$(aws cloudformation describe-stacks --stack-name "$STACK" --region "$REGION" \
-  --query "Stacks[0].Parameters[?ParameterKey=='EdgeGatePublicKeyPem'].ParameterValue" \
-  --output text 2>/dev/null || true)
-[ "$STORED_EDGE_KEY" = "None" ] && STORED_EDGE_KEY=""
-if [ "${EDGE_GATE:-}" = "off" ]; then
-  EDGE_KEY=""
-  [ -n "$STORED_EDGE_KEY" ] && echo "==> Edge gate: DISABLING (EDGE_GATE=off)"
-elif [ -f "$EDGE_KEY_FILE" ]; then
-  EDGE_KEY=$(cat "$EDGE_KEY_FILE")
-  if ! grep -q -- "-----BEGIN PUBLIC KEY-----" "$EDGE_KEY_FILE"; then
-    echo "ERROR: ${EDGE_KEY_FILE} is not a PEM public key (-----BEGIN PUBLIC KEY-----)" >&2
-    exit 1
-  fi
-else
-  EDGE_KEY="$STORED_EDGE_KEY"
-fi
-if [ -n "$EDGE_KEY" ]; then
-  # Never switch the gate on without the page that lets people through it.
-  if [ -z "$STORED_EDGE_KEY" ] && [ ! -f "$EDGE_PAGE_FILE" ]; then
-    echo "ERROR: edge gate needs the signer's 403 page at ${EDGE_PAGE_FILE}" >&2
-    echo "       (or set EDGE_GATE_403_PAGE). Without it signed-out users hit a bare 403." >&2
-    exit 1
-  fi
-  echo "==> Edge gate: ON (signed cookies required; /error/* is the only open path)"
-else
-  echo "==> Edge gate: off (add deploy/edge-gate/public-key.pem + 403.html to enable)"
-fi
-EXTRA_PARAMS+=("EdgeGatePublicKeyPem=${EDGE_KEY}")
-
 # A stack stuck in a failed create state cannot be updated — remove it first.
 STATUS=$(aws cloudformation describe-stacks --stack-name "$STACK" --region "$REGION" \
   --query "Stacks[0].StackStatus" --output text 2>/dev/null || echo "NONE")
@@ -173,13 +132,7 @@ POOL_ID=$(outputs UserPoolId)
 
 echo "==> Building and uploading frontend"
 (cd "$ROOT/frontend" && npm run build)
-# error/* is owned by the edge gate (uploaded below), not the build.
-aws s3 sync "$ROOT/frontend/dist" "s3://${BUCKET}" --delete --exclude "error/*" --region "$REGION"
-if [ -n "$EDGE_KEY" ] && [ -f "$EDGE_PAGE_FILE" ]; then
-  echo "==> Uploading edge-gate 403 page"
-  aws s3 cp "$EDGE_PAGE_FILE" "s3://${BUCKET}/error/403.html" \
-    --content-type "text/html; charset=utf-8" --cache-control "no-store" --region "$REGION"
-fi
+aws s3 sync "$ROOT/frontend/dist" "s3://${BUCKET}" --delete --region "$REGION"
 
 echo "==> Invalidating CloudFront cache"
 aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*" >/dev/null

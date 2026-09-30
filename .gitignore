@@ -21,10 +21,6 @@ frontend/tsconfig.tsbuildinfo
 agent-lineage-security-evidence.zip
 .ash-ci/
 
-# Edge-gate inputs (signer public key + its customized 403 page carry
-# deployment-specific identifiers) stay local
-deploy/edge-gate/
-
 # Env / secrets
 .env
 .env.*

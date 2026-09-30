@@ -28,28 +28,6 @@ function handleUnauthorized(res: Response): void {
     // Session expired — clear and reload to trigger the login redirect.
     clearToken();
     window.location.reload();
-  } else if (res.status === 403) {
-    void checkEdgeSession();
-  }
-}
-
-/** Behind the optional edge gate (signed-cookie SSO at CloudFront), an API
- *  403 is either the app refusing (out of scope, admin only) or the gate's
- *  cookies having expired — the two look the same to fetch(). Probe the page
- *  itself: only when IT is refused too has the edge session lapsed, and a
- *  reload hands the browser to the gate's sign-in page. Without a gate the
- *  probe returns 200 and nothing happens. */
-let probingEdge = false;
-async function checkEdgeSession(): Promise<void> {
-  if (probingEdge) return;
-  probingEdge = true;
-  try {
-    const page = await fetch("/", { method: "HEAD", cache: "no-store" });
-    if (page.status === 403) window.location.reload();
-  } catch {
-    /* network error: leave the app's own error handling to it */
-  } finally {
-    probingEdge = false;
   }
 }
 
