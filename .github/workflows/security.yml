@@ -1,5 +1,5 @@
 # Security gates -- GitHub Actions mirror of .gitlab-ci.yml.
-# Dormant on code.aws.dev (GitLab); activates automatically when this repo is
+# Dormant on GitLab; activates automatically when this repo is
 # hosted on GitHub. Both pipelines call the same scripts in ci/ so the gating
 # logic lives in exactly one place.
 #

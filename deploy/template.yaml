@@ -493,7 +493,7 @@ Resources:
         # No distribution-wide CustomErrorResponses: they apply to EVERY origin,
         # so they also rewrote the API's own 403/404 JSON into index.html with a
         # 200. App-route fallback is handled for the S3 behavior only, by
-        # SpaRewriteFunction. (Also frees the 403 page for Midway/CloudFrontSigner.)
+        # SpaRewriteFunction. (Also leaves the 403 page free for an SSO edge gate.)
         ViewerCertificate:
           CloudFrontDefaultCertificate: true
 

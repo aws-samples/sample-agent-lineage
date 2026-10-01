@@ -21,6 +21,11 @@ frontend/tsconfig.tsbuildinfo
 agent-lineage-security-evidence.zip
 .ash-ci/
 
+# Personal / editor-agent files and documents never belong in the repo
+.kiro/
+*.docx
+*.pdf
+
 # Env / secrets
 .env
 .env.*
