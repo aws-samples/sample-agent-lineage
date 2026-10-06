@@ -19,14 +19,15 @@ User Group → Agent → Sub-agents → Skills → Gateways → Tools / LLMs →
 
 ## Demo
 
-![Agent Lineage demo: searching the catalog, tracing an agent's lineage graph, and drilling into access, governance, cost and run trajectories](docs/img/demo.gif)
+![Agent Lineage demo: from the landing page into an agent's lineage graph, its access, governance, cost by caller and run trajectory, a custom time window, multi-agent collapse/expand and the light theme](docs/img/demo.gif)
 
-*A tour of the seeded demo dataset: search the catalog for an agent and render
-its end-to-end lineage graph, drill into declared vs observed access edges, LLM
-cost attribution, and a failed run's execution trajectory — then step into a
-gateway (Cedar permit/forbid policies, the ALLOW/DENY decision log, and the
-catalog of tools it routes to) and an LLM node showing the guardrail applied to
-the model. Reproduce it locally with the quick start below.*
+*A tour of the seeded demo dataset: the landing page and its product views,
+then search the catalog for an agent and render its end-to-end lineage graph.
+Drill into declared vs observed access, evaluations, LLM cost and cost by
+calling team, and a failed run's execution trajectory. Narrow everything to a
+custom From/To window, add a second agent and collapse both to their direct
+links, then switch to the light theme. Reproduce it locally with the quick
+start below.*
 
 Research and architecture analysis: [`docs/RESEARCH.md`](docs/RESEARCH.md) ·
 Diagrams: [`deploy/architecture.drawio`](deploy/architecture.drawio),
