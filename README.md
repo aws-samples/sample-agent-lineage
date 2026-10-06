@@ -29,6 +29,9 @@ custom From/To window, add a second agent and collapse both to their direct
 links, then switch to the light theme. Reproduce it locally with the quick
 start below.*
 
+Full-resolution, smoother version: [`docs/img/demo.mp4`](docs/img/demo.mp4)
+(1280×800, 30 fps).
+
 Research and architecture analysis: [`docs/RESEARCH.md`](docs/RESEARCH.md) ·
 Diagrams: [`deploy/architecture.drawio`](deploy/architecture.drawio),
 [`deploy/data-ingestion-flow.drawio`](deploy/data-ingestion-flow.drawio)
